@@ -1,1 +1,1 @@
-export type ViewMode = "liste" | "afis";
+export type ViewMode = "liste" | "afis" | "fotograflar";

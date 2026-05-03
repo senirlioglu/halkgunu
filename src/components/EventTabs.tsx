@@ -9,8 +9,10 @@ interface Props {
   activeEventId: string | null;
   mode: ViewMode;
   hasPoster: boolean;
+  hasPhotos: boolean;
   onSelectEvent: (eventId: string) => void;
   onSelectAfis: () => void;
+  onSelectPhotos: () => void;
 }
 
 export function EventTabs({
@@ -18,8 +20,10 @@ export function EventTabs({
   activeEventId,
   mode,
   hasPoster,
+  hasPhotos,
   onSelectEvent,
   onSelectAfis,
+  onSelectPhotos,
 }: Props) {
   if (events.length === 0) {
     return (
@@ -60,6 +64,20 @@ export function EventTabs({
         >
           <div className="text-xs opacity-80">Görsel</div>
           <div>Afiş</div>
+        </button>
+      )}
+      {hasPhotos && (
+        <button
+          onClick={onSelectPhotos}
+          className={
+            "snap-start whitespace-nowrap px-4 py-2 rounded-card text-sm font-medium transition flex flex-col justify-center " +
+            (mode === "fotograflar"
+              ? "bg-gradient-to-r from-emerald-400 to-emerald-600 text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)]"
+              : "bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-300")
+          }
+        >
+          <div className="text-xs opacity-80">Bizden</div>
+          <div>Fotoğraflar</div>
         </button>
       )}
     </div>

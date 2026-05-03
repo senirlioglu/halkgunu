@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { listActiveEvents, listEventPages } from "@/lib/api";
+import { listActiveEvents, listEventPages, listEventPhotos } from "@/lib/api";
 import type { HalkgunuEvent } from "@/lib/types";
 import type { ViewMode } from "@/lib/viewMode";
 import { EventTabs } from "@/components/EventTabs";
 import { ListView } from "@/components/ListView";
+import { PhotosView } from "@/components/PhotosView";
 import { PosterView } from "@/components/PosterView";
 import { StoreModal } from "@/components/StoreModal";
 import { formatEventDate } from "@/lib/format";
@@ -15,6 +16,7 @@ export default function Page() {
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [mode, setMode] = useState<ViewMode>("liste");
   const [hasPoster, setHasPoster] = useState(false);
+  const [hasPhotos, setHasPhotos] = useState(false);
   const [activeProduct, setActiveProduct] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,16 +38,20 @@ export default function Page() {
     };
   }, []);
 
-  // Aktif etkinlik değişince afiş varsa hesapla (mod toggle göstermek için)
+  // Aktif etkinlik değişince afiş ve fotoğraf varlığını hesapla (sekmeleri göstermek için)
   useEffect(() => {
     if (!activeEventId) {
       setHasPoster(false);
+      setHasPhotos(false);
       return;
     }
     let cancelled = false;
     listEventPages(activeEventId)
       .then((p) => !cancelled && setHasPoster(p.length > 0))
       .catch(() => !cancelled && setHasPoster(false));
+    listEventPhotos(activeEventId)
+      .then((ph) => !cancelled && setHasPhotos(ph.length > 0))
+      .catch(() => !cancelled && setHasPhotos(false));
     return () => {
       cancelled = true;
     };
@@ -81,11 +87,13 @@ export default function Page() {
               activeEventId={activeEventId}
               mode={mode}
               hasPoster={hasPoster}
+              hasPhotos={hasPhotos}
               onSelectEvent={(id) => {
                 setActiveEventId(id);
                 setMode("liste");
               }}
               onSelectAfis={() => setMode("afis")}
+              onSelectPhotos={() => setMode("fotograflar")}
             />
 
             {activeEvent && (
@@ -99,13 +107,15 @@ export default function Page() {
                   </div>
                 </div>
 
-                {mode === "liste" || !hasPoster ? (
-                  <ListView
+                {mode === "afis" && hasPoster ? (
+                  <PosterView
                     eventId={activeEvent.event_id}
                     onProductClick={setActiveProduct}
                   />
+                ) : mode === "fotograflar" && hasPhotos ? (
+                  <PhotosView eventId={activeEvent.event_id} />
                 ) : (
-                  <PosterView
+                  <ListView
                     eventId={activeEvent.event_id}
                     onProductClick={setActiveProduct}
                   />
