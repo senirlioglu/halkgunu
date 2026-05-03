@@ -42,6 +42,19 @@ export interface HalkgunuProductSummary {
   max_normal: number | null;
 }
 
+// Etkinlik fotoğrafları (RPC: get_halkgunu_event_photos)
+export interface HalkgunuEventPhoto {
+  id: number;
+  image_path: string;
+  caption: string | null;
+  magaza_kod: string | null;
+  magaza_adi: string | null;
+  adres: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  sort_order: number | null;
+}
+
 // Mağaza listesi (RPC: get_halkgunu_product_stores)
 export interface HalkgunuProductStore {
   magaza_kod: string;

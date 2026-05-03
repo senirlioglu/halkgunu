@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type {
   HalkgunuEvent,
+  HalkgunuEventPhoto,
   HalkgunuMapping,
   HalkgunuPage,
   HalkgunuProductStore,
@@ -81,6 +82,16 @@ export async function listEventProductSummary(
   return Array.from(byKod.values()).sort((a, b) =>
     a.urun_kod.localeCompare(b.urun_kod, "tr"),
   );
+}
+
+export async function listEventPhotos(
+  eventId: string,
+): Promise<HalkgunuEventPhoto[]> {
+  const { data, error } = await supabase.rpc("get_halkgunu_event_photos", {
+    p_event_id: eventId,
+  });
+  if (error) throw error;
+  return (data ?? []) as HalkgunuEventPhoto[];
 }
 
 export async function getProductStores(
