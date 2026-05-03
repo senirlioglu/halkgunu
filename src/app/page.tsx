@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { listActiveEvents, listEventPages } from "@/lib/api";
 import type { HalkgunuEvent } from "@/lib/types";
+import type { ViewMode } from "@/lib/viewMode";
 import { EventTabs } from "@/components/EventTabs";
 import { ListView } from "@/components/ListView";
-import { ModeToggle, type ViewMode } from "@/components/ModeToggle";
 import { PosterView } from "@/components/PosterView";
 import { StoreModal } from "@/components/StoreModal";
 import { formatEventDate } from "@/lib/format";
@@ -79,31 +79,24 @@ export default function Page() {
             <EventTabs
               events={events}
               activeEventId={activeEventId}
-              onSelect={(id) => {
+              mode={mode}
+              hasPoster={hasPoster}
+              onSelectEvent={(id) => {
                 setActiveEventId(id);
                 setMode("liste");
               }}
+              onSelectAfis={() => setMode("afis")}
             />
 
             {activeEvent && (
               <div className="mt-4">
-                <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                  <div>
-                    <div className="text-lg font-semibold text-ink-900">
-                      {activeEvent.event_name}
-                    </div>
-                    <div className="text-sm text-ink-500">
-                      {formatEventDate(activeEvent.event_date)}
-                    </div>
+                <div className="mb-4">
+                  <div className="text-lg font-semibold text-ink-900">
+                    {activeEvent.event_name}
                   </div>
-                  {hasPoster && (
-                    <ModeToggle
-                      mode={mode}
-                      hasPoster
-                      hasList
-                      onChange={setMode}
-                    />
-                  )}
+                  <div className="text-sm text-ink-500">
+                    {formatEventDate(activeEvent.event_date)}
+                  </div>
                 </div>
 
                 {mode === "liste" || !hasPoster ? (
