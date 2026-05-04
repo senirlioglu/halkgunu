@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { listActiveEvents, listEventPages, listEventPhotos } from "@/lib/api";
 import type { HalkgunuEvent } from "@/lib/types";
 import type { ViewMode } from "@/lib/viewMode";
-import { EventTabs } from "@/components/EventTabs";
+import { Header } from "@/components/Header";
+import { DateTabs, ModeToggle } from "@/components/EventTabs";
 import { ListView } from "@/components/ListView";
 import { PhotosView } from "@/components/PhotosView";
 import { PosterView } from "@/components/PosterView";
@@ -21,7 +22,6 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // İlk yüklemede aktif etkinlikleri çek
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -38,7 +38,6 @@ export default function Page() {
     };
   }, []);
 
-  // Aktif etkinlik değişince afiş ve fotoğraf varlığını hesapla (sekmeleri göstermek için)
   useEffect(() => {
     if (!activeEventId) {
       setHasPoster(false);
@@ -63,46 +62,44 @@ export default function Page() {
   );
 
   return (
-    <main className="min-h-screen">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-brand-start to-brand-end text-white">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold">Halk Günü</h1>
-          <p className="text-white/80 text-sm mt-1">
-            Belirli günlerde, belirli mağazalarda geçerli indirimler.
-          </p>
-        </div>
-      </header>
+    <main className="min-h-screen bg-paper-bg">
+      <Header eventCount={events.length} />
 
-      <div className="max-w-5xl mx-auto px-4 py-4">
-        {loading && <div className="text-center py-10 text-ink-500">Yükleniyor…</div>}
+      <div className="max-w-5xl mx-auto">
+        {loading && (
+          <div className="text-center py-10 text-ink-500">Yükleniyor…</div>
+        )}
         {error && (
-          <div className="text-center py-10 text-rose-600">Hata: {error}</div>
+          <div className="text-center py-10 text-brand">Hata: {error}</div>
         )}
 
         {!loading && !error && (
           <>
-            <EventTabs
+            <DateTabs
               events={events}
               activeEventId={activeEventId}
-              mode={mode}
-              hasPoster={hasPoster}
-              hasPhotos={hasPhotos}
               onSelectEvent={(id) => {
                 setActiveEventId(id);
                 setMode("liste");
               }}
-              onSelectAfis={() => setMode("afis")}
-              onSelectPhotos={() => setMode("fotograflar")}
             />
 
             {activeEvent && (
-              <div className="mt-4">
+              <ModeToggle
+                mode={mode}
+                hasPoster={hasPoster}
+                hasPhotos={hasPhotos}
+                onChange={setMode}
+              />
+            )}
+
+            {activeEvent && (
+              <div className="mt-4 px-4">
                 <div className="mb-4">
-                  <div className="text-lg font-semibold text-ink-900">
+                  <div className="font-display text-xl font-extrabold text-ink-900 tracking-tightest">
                     {activeEvent.event_name}
                   </div>
-                  <div className="text-sm text-ink-500">
+                  <div className="text-sm text-ink-500 mt-0.5">
                     {formatEventDate(activeEvent.event_date)}
                   </div>
                 </div>
