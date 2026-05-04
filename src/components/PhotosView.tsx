@@ -1,28 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { listEventPhotos } from "@/lib/api";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuEventPhoto } from "@/lib/types";
 
+const Lightbox = dynamic(
+  () => import("@/components/Lightbox").then((m) => m.default),
+  { ssr: false },
+);
+
 interface Props {
   eventId: string;
-}
-
-function mapsHref(photo: HalkgunuEventPhoto): string | null {
-  if (photo.latitude != null && photo.longitude != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${photo.latitude},${photo.longitude}`;
-  }
-  if (photo.adres) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(photo.adres)}`;
-  }
-  return null;
 }
 
 export function PhotosView({ eventId }: Props) {
   const [photos, setPhotos] = useState<HalkgunuEventPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,10 +35,19 @@ export function PhotosView({ eventId }: Props) {
   }, [eventId]);
 
   if (loading) {
-    return <div className="text-center py-10 text-ink-500">Yükleniyor…</div>;
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="aspect-[4/3] rounded-card border border-paper-border bg-paper-surface skeleton"
+          />
+        ))}
+      </div>
+    );
   }
   if (error) {
-    return <div className="text-center py-10 text-rose-600">Hata: {error}</div>;
+    return <div className="text-center py-10 text-brand">Hata: {error}</div>;
   }
   if (photos.length === 0) {
     return (
@@ -52,47 +58,50 @@ export function PhotosView({ eventId }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {photos.map((p) => {
-        const href = mapsHref(p);
-        return (
-          <figure
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {photos.map((p, i) => (
+          <button
             key={p.id}
-            className="bg-white rounded-card overflow-hidden border border-slate-200 shadow-sm flex flex-col"
+            type="button"
+            onClick={() => setLightboxIdx(i)}
+            className="bg-paper-surface rounded-card overflow-hidden border border-paper-border
+                       shadow-card flex flex-col text-left active:translate-y-px transition"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={posterImageUrl(p.image_path)}
               alt={p.caption ?? p.magaza_adi ?? "Halk Günü"}
-              className="w-full aspect-[4/3] object-cover bg-slate-100"
+              className="w-full aspect-[4/3] object-cover bg-paper-bg"
               loading="lazy"
             />
-            <figcaption className="p-3 flex flex-col gap-1">
+            <div className="p-2.5 flex flex-col gap-0.5">
               {p.magaza_adi && (
-                <div className="text-sm font-semibold text-ink-900">
+                <div className="font-display text-[12px] font-bold text-ink-900 leading-tight">
                   {p.magaza_adi}
                 </div>
               )}
               {p.adres && (
-                <div className="text-xs text-ink-500">{p.adres}</div>
+                <div className="text-[10px] text-ink-500 line-clamp-1">
+                  {p.adres}
+                </div>
               )}
               {p.caption && (
-                <div className="text-sm text-ink-700 mt-1">{p.caption}</div>
+                <div className="text-[11px] text-ink-700 mt-0.5 line-clamp-2">
+                  {p.caption}
+                </div>
               )}
-              {href && (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-emerald-700 hover:text-emerald-800 mt-1 inline-block"
-                >
-                  Haritada göster →
-                </a>
-              )}
-            </figcaption>
-          </figure>
-        );
-      })}
-    </div>
+            </div>
+          </button>
+        ))}
+      </div>
+      {lightboxIdx != null && (
+        <Lightbox
+          photos={photos}
+          startIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
+      )}
+    </>
   );
 }

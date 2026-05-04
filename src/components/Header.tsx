@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { LogoMark, Wordmark } from "./Logo";
 
 interface Props {
-  eventCount: number;
+  eventCount?: number;
   onLocationClick?: () => void;
 }
 
@@ -39,9 +39,11 @@ export function Header({ eventCount, onLocationClick }: Props) {
           <LogoMark size={36} />
           <div className="flex flex-col leading-none">
             <Wordmark size={20} />
-            <span className="text-[10px] mt-1 tracking-[0.08em] font-bold text-ink-500 uppercase">
-              İYİBULUR · {eventCount} ETKİNLİK
-            </span>
+            {eventCount != null && eventCount > 0 && (
+              <span className="text-[10px] mt-1 tracking-[0.08em] font-bold text-ink-500 uppercase">
+                İYİBULUR · {eventCount} ETKİNLİK
+              </span>
+            )}
           </div>
         </div>
         <button
