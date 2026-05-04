@@ -1,30 +1,39 @@
+// halkgunu-web/src/components/ProductCard.tsx
 "use client";
-
-import { useState } from "react";
 import type { HalkgunuProductSummary } from "@/lib/types";
 import { productImageUrl } from "@/lib/supabase";
 import { discountPercent, formatPrice } from "@/lib/format";
+import { useState } from "react";
+import { emojiFor, prefixOf } from "@/lib/categories";
 
 interface Props {
-  product: HalkgunuProductSummary;
-  onClick: (urunKod: string) => void;
+  product: HalkgunuProductSummary & { store_count?: number };
+  onClick: (product: HalkgunuProductSummary) => void;
 }
 
 export function ProductCard({ product, onClick }: Props) {
   const [imgError, setImgError] = useState(false);
   const url = productImageUrl(product.urun_kod);
   const indirim = discountPercent(product.max_normal, product.min_indirimli);
+  const initials = prefixOf(product.urun_kod) || product.urun_kod.slice(0, 2);
 
   return (
     <button
       type="button"
-      onClick={() => onClick(product.urun_kod)}
-      className="text-left bg-white rounded-card border border-slate-200 hover:border-brand-start hover:shadow-md transition overflow-hidden group"
+      onClick={() => onClick(product)}
+      className="group flex flex-col bg-paper-surface border border-paper-border
+                 rounded-card overflow-hidden text-left shadow-card
+                 hover:border-brand hover:-translate-y-px transition-all duration-150
+                 ease-bazaar"
     >
-      <div className="aspect-square bg-slate-100 relative">
+      <div className="relative aspect-square bg-kraft-stripe">
         {imgError ? (
-          <div className="absolute inset-0 flex items-center justify-center text-ink-500 text-xs">
-            Resim yok
+          <div className="absolute inset-0 grid place-items-center gap-1.5">
+            <span className="text-3xl opacity-70">{emojiFor(product.urun_kod)}</span>
+            <span className="text-[10px] font-mono font-bold bg-paper-surface
+                             text-ink-700 px-1.5 py-0.5 rounded border border-paper-border">
+              {initials}
+            </span>
           </div>
         ) : (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -37,22 +46,32 @@ export function ProductCard({ product, onClick }: Props) {
           />
         )}
         {indirim != null && (
-          <div className="absolute top-2 right-2 bg-rose-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
-            %{indirim}
+          <div className="tag-discount absolute top-2 -right-1 bg-brand text-white
+                          font-display font-extrabold text-xs px-3 py-1 pl-3.5">
+            −%{indirim}
+          </div>
+        )}
+        {product.store_count != null && (
+          <div className="absolute bottom-1.5 left-1.5 bg-paper-surface text-ink-700
+                          text-[10px] font-bold font-mono px-1.5 py-0.5 rounded">
+            {product.store_count} mağaza
           </div>
         )}
       </div>
-      <div className="p-3">
-        <div className="text-xs text-ink-500 font-mono">{product.urun_kod}</div>
-        <div className="text-sm font-medium text-ink-900 line-clamp-2 min-h-[2.5rem]">
+      <div className="p-2.5 flex flex-col gap-1">
+        <div className="text-[10px] font-mono text-ink-500 tracking-wide">
+          {product.urun_kod}
+        </div>
+        <div className="font-display text-[13px] font-semibold text-ink-900
+                        leading-snug line-clamp-2 min-h-[32px]" style={{ textWrap: "pretty" } as any}>
           {product.urun_ad ?? "—"}
         </div>
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-base font-bold text-rose-600">
+        <div className="flex items-baseline gap-1.5 mt-0.5">
+          <span className="font-display text-base font-extrabold text-brand tracking-tightest">
             {formatPrice(product.min_indirimli)}
           </span>
           {product.max_normal != null && product.max_normal > (product.min_indirimli ?? 0) && (
-            <span className="text-xs text-ink-500 line-through">
+            <span className="text-[11px] text-ink-500 line-through">
               {formatPrice(product.max_normal)}
             </span>
           )}

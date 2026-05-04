@@ -84,6 +84,58 @@ export async function listEventProductSummary(
   );
 }
 
+export interface EventStoreCatalog {
+  // urun_kod → mağaza kodları (filtre için)
+  storeMap: Record<string, string[]>;
+  // distinct mağaza listesi (filtre arayüzü için, magaza_adi ile)
+  stores: { magaza_kod: string; magaza_adi: string | null }[];
+}
+
+export async function listEventStoreCatalog(
+  eventId: string,
+): Promise<EventStoreCatalog> {
+  const { data: prods, error: e1 } = await supabase
+    .from("halkgunu_products")
+    .select("urun_kod, magaza_kod")
+    .eq("event_id", eventId);
+  if (e1) throw e1;
+
+  const map: Record<string, Set<string>> = {};
+  const kodSet = new Set<string>();
+  for (const r of prods ?? []) {
+    if (!r.urun_kod || !r.magaza_kod) continue;
+    (map[r.urun_kod] ??= new Set()).add(r.magaza_kod);
+    kodSet.add(r.magaza_kod);
+  }
+
+  let stores: { magaza_kod: string; magaza_adi: string | null }[] = [];
+  if (kodSet.size > 0) {
+    const { data: rows, error: e2 } = await supabase
+      .from("magazalar")
+      .select("magaza_kod, magaza_adi")
+      .in("magaza_kod", Array.from(kodSet));
+    if (!e2 && rows) {
+      stores = rows as typeof stores;
+    } else {
+      stores = Array.from(kodSet).map((k) => ({
+        magaza_kod: k,
+        magaza_adi: null,
+      }));
+    }
+  }
+  stores.sort((a, b) =>
+    (a.magaza_adi ?? a.magaza_kod).localeCompare(
+      b.magaza_adi ?? b.magaza_kod,
+      "tr",
+    ),
+  );
+
+  const storeMap: Record<string, string[]> = {};
+  for (const k of Object.keys(map)) storeMap[k] = Array.from(map[k]);
+
+  return { storeMap, stores };
+}
+
 export async function listEventPhotos(
   eventId: string,
 ): Promise<HalkgunuEventPhoto[]> {
