@@ -7,7 +7,7 @@ import { useState } from "react";
 
 interface Props {
   product: HalkgunuProductSummary & { store_count?: number };
-  onClick: (urunKod: string) => void;
+  onClick: (product: HalkgunuProductSummary) => void;
 }
 
 // Ürün kodundan kategori ipucu emoji (geçici, kategori sütunu eklenince kalkar).
@@ -30,7 +30,7 @@ export function ProductCard({ product, onClick }: Props) {
   return (
     <button
       type="button"
-      onClick={() => onClick(product.urun_kod)}
+      onClick={() => onClick(product)}
       className="group flex flex-col bg-paper-surface border border-paper-border
                  rounded-card overflow-hidden text-left shadow-card
                  hover:border-brand hover:-translate-y-px transition-all duration-150

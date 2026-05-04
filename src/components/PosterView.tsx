@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { listEventMappings, listEventPages } from "@/lib/api";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuMapping, HalkgunuPage } from "@/lib/types";
+import type { ClickedProduct } from "./StoreModal";
 
 interface Props {
   eventId: string;
-  onProductClick: (urunKod: string) => void;
+  onProductClick: (product: ClickedProduct) => void;
 }
 
 export function PosterView({ eventId, onProductClick }: Props) {
@@ -103,7 +104,15 @@ export function PosterView({ eventId, onProductClick }: Props) {
           <button
             key={m.mapping_id}
             type="button"
-            onClick={() => m.urun_kodu && onProductClick(m.urun_kodu)}
+            onClick={() =>
+              m.urun_kodu &&
+              onProductClick({
+                urun_kod: m.urun_kodu,
+                urun_ad: m.urun_aciklamasi,
+                max_normal: null,
+                min_indirimli: null,
+              })
+            }
             disabled={!m.urun_kodu}
             className="absolute border-2 border-brand-start/70 hover:border-brand-end hover:bg-brand-start/10 transition cursor-pointer rounded-sm"
             style={{

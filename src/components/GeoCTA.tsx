@@ -2,7 +2,12 @@
 "use client";
 import { useEffect, useState } from "react";
 
-interface Props { onPermission?: (granted: boolean) => void; }
+interface Props {
+  onPermission?: (
+    granted: boolean,
+    pos?: { lat: number; lng: number } | null,
+  ) => void;
+}
 
 const KEY = "hg_geo_dismissed";
 
@@ -20,13 +25,24 @@ export function GeoCTA({ onPermission }: Props) {
 
   const ask = () => {
     navigator.geolocation.getCurrentPosition(
-      () => { onPermission?.(true); localStorage.setItem(KEY, "1"); setHidden(true); },
-      () => { onPermission?.(false); localStorage.setItem(KEY, "1"); setHidden(true); },
+      (p) => {
+        onPermission?.(true, { lat: p.coords.latitude, lng: p.coords.longitude });
+        localStorage.setItem(KEY, "1");
+        setHidden(true);
+      },
+      () => {
+        onPermission?.(false, null);
+        localStorage.setItem(KEY, "1");
+        setHidden(true);
+      },
       { enableHighAccuracy: false, timeout: 5000 },
     );
   };
 
-  const dismiss = () => { localStorage.setItem(KEY, "1"); setHidden(true); };
+  const dismiss = () => {
+    localStorage.setItem(KEY, "1");
+    setHidden(true);
+  };
 
   return (
     <div className="mx-4 my-3 flex items-center gap-2.5 bg-accent-soft border-2 border-dashed

@@ -9,8 +9,11 @@ import { GeoCTA } from "./GeoCTA";
 
 interface Props {
   eventId: string;
-  onProductClick: (urunKod: string) => void;
-  onGeoPermission?: (granted: boolean) => void;
+  onProductClick: (product: HalkgunuProductSummary) => void;
+  onGeoPermission?: (
+    granted: boolean,
+    pos?: { lat: number; lng: number } | null,
+  ) => void;
 }
 
 export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {

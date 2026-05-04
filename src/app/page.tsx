@@ -9,7 +9,7 @@ import { DateTabs, ModeToggle } from "@/components/EventTabs";
 import { ListView } from "@/components/ListView";
 import { PhotosView } from "@/components/PhotosView";
 import { PosterView } from "@/components/PosterView";
-import { StoreModal } from "@/components/StoreModal";
+import { StoreModal, type ClickedProduct } from "@/components/StoreModal";
 import { formatEventDate } from "@/lib/format";
 
 export default function Page() {
@@ -18,7 +18,8 @@ export default function Page() {
   const [mode, setMode] = useState<ViewMode>("liste");
   const [hasPoster, setHasPoster] = useState(false);
   const [hasPhotos, setHasPhotos] = useState(false);
-  const [activeProduct, setActiveProduct] = useState<string | null>(null);
+  const [activeProduct, setActiveProduct] = useState<ClickedProduct | null>(null);
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,6 +116,7 @@ export default function Page() {
                   <ListView
                     eventId={activeEvent.event_id}
                     onProductClick={setActiveProduct}
+                    onGeoPermission={(_g, pos) => pos && setUserPos(pos)}
                   />
                 )}
               </div>
@@ -123,10 +125,14 @@ export default function Page() {
         )}
       </div>
 
-      {activeEvent && (
+      {activeEvent && activeProduct && (
         <StoreModal
           eventId={activeEvent.event_id}
-          urunKod={activeProduct}
+          urunKod={activeProduct.urun_kod}
+          urunAd={activeProduct.urun_ad ?? undefined}
+          maxNormal={activeProduct.max_normal}
+          minIndirimli={activeProduct.min_indirimli}
+          userPos={userPos}
           onClose={() => setActiveProduct(null)}
         />
       )}
