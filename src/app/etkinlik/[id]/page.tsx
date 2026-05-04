@@ -3,6 +3,7 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { listActiveEvents } from "@/lib/api";
 import { formatEventDate } from "@/lib/format";
 import EventClient from "./EventClient";
@@ -50,5 +51,9 @@ export default async function EventPage({ params }: Params) {
   const events = await listActiveEvents().catch(() => []);
   const ev = events.find(e => e.event_id === params.id);
   if (!ev) notFound();
-  return <EventClient events={events} initialEventId={params.id} />;
+  return (
+    <Suspense fallback={null}>
+      <EventClient events={events} initialEventId={params.id} />
+    </Suspense>
+  );
 }
