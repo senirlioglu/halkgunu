@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { listEventProductSummary } from "@/lib/api";
+import { listEventProductSummary, listEventStoreCatalog } from "@/lib/api";
 import type { HalkgunuProductSummary } from "@/lib/types";
 import { matchTr } from "@/lib/search";
 import { ProductCard } from "./ProductCard";
@@ -51,6 +51,10 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
   const searchParams = useSearchParams();
 
   const [products, setProducts] = useState<HalkgunuProductSummary[]>([]);
+  const [storeCatalog, setStoreCatalog] = useState<{
+    storeMap: Record<string, string[]>;
+    stores: { magaza_kod: string; magaza_adi: string | null }[];
+  }>({ storeMap: {}, stores: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -72,8 +76,18 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listEventProductSummary(eventId)
-      .then((rows) => !cancelled && setProducts(rows))
+    Promise.all([
+      listEventProductSummary(eventId),
+      listEventStoreCatalog(eventId).catch(() => ({
+        storeMap: {},
+        stores: [],
+      })),
+    ])
+      .then(([rows, cat]) => {
+        if (cancelled) return;
+        setProducts(rows);
+        setStoreCatalog(cat);
+      })
       .catch((e: Error) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -101,6 +115,14 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
       arr = arr.filter((p) => {
         const c = categoryOf(p.urun_kod);
         return c != null && filter.categories.includes(c);
+      });
+    }
+    if (filter.stores.length > 0) {
+      const sel = new Set(filter.stores);
+      arr = arr.filter((p) => {
+        const stores = storeCatalog.storeMap[p.urun_kod];
+        if (!stores || stores.length === 0) return false;
+        return stores.some((s) => sel.has(s));
       });
     }
     if (filter.minDiscount > 0) {
@@ -136,7 +158,7 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
       );
     }
     return sorted;
-  }, [products, query, filter]);
+  }, [products, query, filter, storeCatalog]);
 
   const activeFilterCount =
     filter.categories.length +
@@ -249,7 +271,7 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
         value={filter}
         onChange={setFilter}
         allCategories={allCategories}
-        allStores={[]}
+        allStores={storeCatalog.stores}
         matchCount={filtered.length}
         hasGeo={hasGeo}
       />
