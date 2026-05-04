@@ -4,28 +4,18 @@ import type { HalkgunuProductSummary } from "@/lib/types";
 import { productImageUrl } from "@/lib/supabase";
 import { discountPercent, formatPrice } from "@/lib/format";
 import { useState } from "react";
+import { emojiFor, prefixOf } from "@/lib/categories";
 
 interface Props {
   product: HalkgunuProductSummary & { store_count?: number };
   onClick: (product: HalkgunuProductSummary) => void;
 }
 
-// Ürün kodundan kategori ipucu emoji (geçici, kategori sütunu eklenince kalkar).
-function hintFor(kod: string): string {
-  const p = kod.split("-")[0];
-  const map: Record<string, string> = {
-    AYG: "🫒", ZEY: "🫒", DET: "🧴", ŞAM: "🧴", BEZ: "👶",
-    KAH: "☕", ÇAY: "🍵", BIS: "🍪", SUT: "🥛", PEY: "🧀",
-    YUM: "🥚", MAK: "🍝",
-  };
-  return map[p] ?? "📦";
-}
-
 export function ProductCard({ product, onClick }: Props) {
   const [imgError, setImgError] = useState(false);
   const url = productImageUrl(product.urun_kod);
   const indirim = discountPercent(product.max_normal, product.min_indirimli);
-  const initials = product.urun_kod.split("-")[0];
+  const initials = prefixOf(product.urun_kod) || product.urun_kod.slice(0, 2);
 
   return (
     <button
@@ -39,7 +29,7 @@ export function ProductCard({ product, onClick }: Props) {
       <div className="relative aspect-square bg-kraft-stripe">
         {imgError ? (
           <div className="absolute inset-0 grid place-items-center gap-1.5">
-            <span className="text-3xl opacity-70">{hintFor(product.urun_kod)}</span>
+            <span className="text-3xl opacity-70">{emojiFor(product.urun_kod)}</span>
             <span className="text-[10px] font-mono font-bold bg-paper-surface
                              text-ink-700 px-1.5 py-0.5 rounded border border-paper-border">
               {initials}

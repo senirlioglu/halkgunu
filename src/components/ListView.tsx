@@ -14,6 +14,7 @@ import {
   queryToFilter,
   type FilterState,
 } from "./FilterSheet";
+import { categoryOf } from "@/lib/categories";
 
 interface Props {
   eventId: string;
@@ -31,19 +32,6 @@ const SORT_LABEL: Record<FilterState["sort"], string> = {
   yakinlik: "Yakınlık",
   stok: "Stoğu en fazla",
 };
-
-// Geçici kategori türetimi — urun_kod prefix'inden. Backend'e kategori sütunu
-// eklenince burası kalkar.
-const CAT_PREFIX: Record<string, string> = {
-  AYG: "Gıda", ZEY: "Gıda", SUT: "Gıda", PEY: "Gıda", YUM: "Gıda",
-  BIS: "Gıda", MAK: "Gıda",
-  KAH: "İçecek", ÇAY: "İçecek",
-  DET: "Temizlik", ŞAM: "Temizlik",
-  BEZ: "Bebek",
-};
-function categoryOf(kod: string): string | null {
-  return CAT_PREFIX[kod.split("-")[0]] ?? null;
-}
 
 export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
   const router = useRouter();
