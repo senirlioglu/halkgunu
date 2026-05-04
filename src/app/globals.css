@@ -1,21 +1,69 @@
+/* halkgunu-web/src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
+  --paper-bg: #fef9ed;
+  --paper-border: #ecdfd0;
 }
 
-html,
-body {
-  @apply bg-slate-50 text-ink-900;
+html, body {
+  @apply bg-paper-bg text-ink-900;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Mağaza kartı — Ara'nın stok kartı biriminin Tailwind hâli.
-   Renk varyasyonları class ile geliyor (border-l + bg gradient) */
-.store-card {
-  @apply rounded-lg px-4 py-3 mb-2 border-l-4 flex justify-between items-center
-         flex-wrap gap-2;
+/* Display font helper */
+.font-display { font-family: "Bricolage Grotesque", Inter, sans-serif; letter-spacing: -0.03em; }
+
+/* Kraft paper diagonal stripe — used as product placeholder background */
+.bg-kraft-stripe {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--paper-bg) 0 8px,
+    #ffffff 8px 16px
+  );
 }
+
+/* Yamuk indirim etiketi — clip-path */
+.tag-discount {
+  clip-path: polygon(8% 0, 100% 0, 100% 100%, 8% 100%, 0 50%);
+}
+
+/* Mağaza kartı (modal içi) — Ara'nın stok kartı pattern'i */
+.store-card {
+  @apply rounded-card px-4 py-3 mb-2 border-l-4 flex justify-between items-start gap-3;
+}
+
+/* Focus ring sistemi — A11y için */
+*:focus-visible {
+  @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-paper-bg;
+}
+
+/* Kesikli ayırıcı — header altı, banner çevresi */
+.border-dashed-paper {
+  border-image: repeating-linear-gradient(
+    90deg, var(--paper-border) 0 8px, transparent 8px 14px
+  ) 1;
+}
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
+}
+.skeleton {
+  @apply bg-ink-300/40 rounded;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* Scrollbar — yatay tab/chip rowlarında gizle */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Bottom-sheet animation handle */
+.sheet-handle { width: 36px; height: 4px; border-radius: 2px; @apply bg-ink-300 mx-auto; }
