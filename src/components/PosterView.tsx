@@ -105,32 +105,28 @@ export function PosterView({ eventId, onProductClick }: Props) {
       )}
 
       <div className="relative">
-        {/* Ara/A101 ferah kutu: dış kapsayıcı viewport'a sığar (max-h-[85vh]),
-            iç kapsayıcı görselin doğal yüksekliğinde — hotspot %'leri buradan
-            referans alır, scroll ise dış kapsayıcıda. */}
         <div
           ref={wrapRef}
-          className="bg-paper-surface rounded-card overflow-y-auto overflow-x-hidden shadow-card border border-paper-border max-h-[85vh]"
+          className="relative w-full bg-paper-surface rounded-card overflow-hidden shadow-card border border-paper-border"
         >
-          <div className="relative w-full">
-            {!imgReady && (
-              <div className="aspect-[3/4] w-full skeleton rounded-card" />
-            )}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={posterImageUrl(activePage.image_path, {
-                width: 1800,
-                quality: 92,
-              })}
-              alt={activePage.title || ""}
-              className={
-                "w-full h-auto block transition-opacity duration-200 " +
-                (imgReady ? "opacity-100" : "opacity-0 absolute")
-              }
-              fetchPriority="high"
-              decoding="async"
-              onLoad={() => setImgReady(true)}
-            />
+          {!imgReady && (
+            <div className="aspect-[3/4] w-full skeleton rounded-card" />
+          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={posterImageUrl(activePage.image_path, {
+              width: 1800,
+              quality: 92,
+            })}
+            alt={activePage.title || ""}
+            className={
+              "w-full h-auto block transition-opacity duration-200 " +
+              (imgReady ? "opacity-100" : "opacity-0 absolute")
+            }
+            fetchPriority="high"
+            decoding="async"
+            onLoad={() => setImgReady(true)}
+          />
 
           {imgReady &&
             pageMappings.map((m) => {
@@ -203,7 +199,6 @@ export function PosterView({ eventId, onProductClick }: Props) {
                 </button>
               );
             })}
-          </div>
         </div>
 
         {pages.length > 1 && (
