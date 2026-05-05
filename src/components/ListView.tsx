@@ -7,6 +7,7 @@ import type { HalkgunuProductSummary } from "@/lib/types";
 import { matchTr } from "@/lib/search";
 import { ProductCard } from "./ProductCard";
 import { GeoCTA } from "./GeoCTA";
+import { CategoryPills } from "./CategoryPills";
 import {
   DEFAULT_FILTER,
   FilterSheet,
@@ -195,6 +196,20 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
                      focus:outline-none focus:border-brand focus:border-2"
         />
       </div>
+
+      <CategoryPills
+        productCodes={products.map((p) => p.urun_kod)}
+        selected={filter.categories}
+        onToggle={(cat) =>
+          setFilter({
+            ...filter,
+            categories: filter.categories.includes(cat)
+              ? filter.categories.filter((c) => c !== cat)
+              : [...filter.categories, cat],
+          })
+        }
+        onClear={() => setFilter({ ...filter, categories: [] })}
+      />
 
       <GeoCTA
         onPermission={(g, pos) => {
