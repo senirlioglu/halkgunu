@@ -175,21 +175,23 @@ export function PosterView({ eventId, onProductClick }: Props) {
                       aria-hidden
                       className="absolute bottom-1.5 right-1.5
                                  w-9 h-9 rounded-full
-                                 bg-white text-ink-700 grid place-items-center
-                                 shadow-[0_2px_8px_rgba(0,0,0,0.2)]
+                                 bg-white/30 backdrop-blur-sm
+                                 border border-white/50
+                                 text-white grid place-items-center
+                                 shadow-[0_2px_6px_rgba(0,0,0,0.25)]
                                  transition
-                                 group-hover:scale-110 group-hover:shadow-[0_4px_14px_rgba(0,0,0,0.28)]
-                                 group-active:bg-brand group-active:text-white
+                                 group-hover:bg-white/55 group-hover:scale-110
+                                 group-active:bg-brand group-active:border-brand
                                  group-active:scale-95"
                     >
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="2.4"
+                        strokeWidth="2.6"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-5 h-5"
+                        className="w-5 h-5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
                       >
                         <circle cx="10" cy="10" r="6" />
                         <line x1="14.5" y1="14.5" x2="20" y2="20" />
