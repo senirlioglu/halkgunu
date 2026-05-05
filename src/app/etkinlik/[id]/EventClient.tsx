@@ -82,13 +82,14 @@ export default function EventClient({ events, initialEventId }: Props) {
           </div>
         )}
 
-        {/* Poster modu masaüstünde rahatsız edici şekilde gerilmesin diye
-            kendi dar konteyneri var; liste/foto grid'i full-w kullanır. */}
+        {/* Poster modu: max-w-3xl (~768px) + image içinde max-h-[85vh] —
+            Ara'nın layout="wide" + height=900 iframe'iyle benzer ferah bir
+            kutu. Desktop'ta yatay yayılma yok, mobilde tam genişlik. */}
         <div
           className={
             "pb-12 pt-3 " +
             (mode === "afis" && hasPoster
-              ? "px-4 max-w-2xl mx-auto"
+              ? "px-4 max-w-3xl mx-auto"
               : "px-4")
           }
         >
