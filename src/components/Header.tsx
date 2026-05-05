@@ -2,13 +2,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { LogoMark, Wordmark } from "./Logo";
+import { WhatsAppFollow } from "./WhatsAppFollow";
 
 interface Props {
   eventCount?: number;
-  onLocationClick?: () => void;
 }
 
-export function Header({ eventCount, onLocationClick }: Props) {
+export function Header({ eventCount }: Props) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -19,22 +19,22 @@ export function Header({ eventCount, onLocationClick }: Props) {
 
   if (scrolled) {
     return (
-      <header className="sticky top-0 z-30 h-12 px-4 flex items-center gap-3
-                         bg-paper-bg/90 backdrop-blur border-b border-paper-border">
+      <header
+        className="sticky top-0 z-30 h-12 px-4 flex items-center gap-3
+                   bg-paper-bg/90 backdrop-blur border-b border-paper-border"
+      >
         <LogoMark size={24} />
         <Wordmark size={14} />
-        <button
-          onClick={onLocationClick}
-          aria-label="Konum izni iste"
-          className="ml-auto text-base"
-        >📍</button>
+        <div className="ml-auto">
+          <WhatsAppFollow compact />
+        </div>
       </header>
     );
   }
 
   return (
     <header className="bg-paper-bg border-b-2 border-dashed border-paper-border px-4 py-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <LogoMark size={36} />
           <div className="flex flex-col leading-none">
@@ -46,12 +46,7 @@ export function Header({ eventCount, onLocationClick }: Props) {
             )}
           </div>
         </div>
-        <button
-          onClick={onLocationClick}
-          aria-label="Konum izni iste"
-          className="w-9 h-9 rounded-full bg-paper-surface border border-paper-border
-                     grid place-items-center text-base hover:border-brand transition"
-        >📍</button>
+        <WhatsAppFollow compact />
       </div>
     </header>
   );
