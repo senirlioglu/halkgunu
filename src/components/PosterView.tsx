@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listEventMappings, listEventPages } from "@/lib/api";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuMapping, HalkgunuPage } from "@/lib/types";
@@ -11,14 +11,39 @@ interface Props {
   onProductClick: (product: ClickedProduct) => void;
 }
 
+interface TouchState {
+  startX: number;
+  startY: number;
+  startTime: number;
+  dragOffset: number;
+  dirLocked: boolean;
+  isHorizontal: boolean;
+  isDragging: boolean;
+  isSliding: boolean;
+}
+
+const initialTouch: TouchState = {
+  startX: 0,
+  startY: 0,
+  startTime: 0,
+  dragOffset: 0,
+  dirLocked: false,
+  isHorizontal: false,
+  isDragging: false,
+  isSliding: false,
+};
+
 export function PosterView({ eventId, onProductClick }: Props) {
   const [pages, setPages] = useState<HalkgunuPage[]>([]);
   const [mappings, setMappings] = useState<HalkgunuMapping[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
   const [imgReady, setImgReady] = useState(false);
+
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const touch = useRef<TouchState>({ ...initialTouch });
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +75,120 @@ export function PosterView({ eventId, onProductClick }: Props) {
     );
   }, [mappings, activePage]);
 
+  // ─────────────────────────────────────────────────────
+  // Tek-parmak yatay swipe → sayfa değiştir
+  // Dikey hareket → sayfa scroll'una izin ver (touchAction: pan-y)
+  // Direction-lock 4px eşikle; sonra preventDefault + drag.
+  // ─────────────────────────────────────────────────────
+  const slideTo = useCallback(
+    (target: number, fromDirection: 1 | -1 | null) => {
+      const track = trackRef.current;
+      const wrap = wrapRef.current;
+      if (!track || !wrap) return;
+      if (target < 0 || target >= pages.length || target === activeIdx) {
+        track.style.transition = "transform 280ms cubic-bezier(0.2,0.8,0.2,1)";
+        track.style.transform = "translateX(0)";
+        const onEnd = () => {
+          track.style.transition = "";
+          track.style.transform = "";
+          track.removeEventListener("transitionend", onEnd);
+          touch.current.isSliding = false;
+        };
+        track.addEventListener("transitionend", onEnd);
+        return;
+      }
+      const wrapW = wrap.clientWidth;
+      const direction =
+        fromDirection ?? (target > activeIdx ? -1 : 1); // -1: slide left
+      touch.current.isSliding = true;
+      track.style.transition = "transform 220ms cubic-bezier(0.2,0.8,0.2,1)";
+      track.style.transform = `translateX(${direction * wrapW}px)`;
+
+      const after = () => {
+        track.removeEventListener("transitionend", after);
+        // Görsel değişimi ve track'in sıfırlanması — flicker'ı önlemek için
+        // transition'sız yap, sonra rAF ile bir frame bekle.
+        track.style.transition = "";
+        track.style.transform = "";
+        setActiveIdx(target);
+        setImgReady(false);
+        touch.current.isSliding = false;
+      };
+      track.addEventListener("transitionend", after);
+    },
+    [activeIdx, pages.length],
+  );
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (touch.current.isSliding) return;
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touch.current = {
+      ...initialTouch,
+      startX: t.clientX,
+      startY: t.clientY,
+      startTime: Date.now(),
+    };
+    if (trackRef.current) {
+      trackRef.current.style.transition = "";
+    }
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    const s = touch.current;
+    if (s.isSliding || pages.length <= 1 || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - s.startX;
+    const dy = t.clientY - s.startY;
+
+    if (!s.dirLocked && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+      s.dirLocked = true;
+      s.isHorizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if (!s.isHorizontal) return; // dikey scroll'a izin ver
+
+    if (e.cancelable) e.preventDefault();
+    s.isDragging = true;
+
+    let offset = dx;
+    if (
+      (activeIdx === 0 && dx > 0) ||
+      (activeIdx === pages.length - 1 && dx < 0)
+    ) {
+      offset = dx * 0.25; // uçlarda direnç
+    }
+    s.dragOffset = offset;
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translateX(${offset}px)`;
+    }
+  };
+
+  const onTouchEnd = () => {
+    const s = touch.current;
+    if (!s.isDragging) {
+      if (trackRef.current) trackRef.current.style.transform = "";
+      return;
+    }
+    const wrapW = wrapRef.current?.clientWidth ?? window.innerWidth;
+    const elapsed = Date.now() - s.startTime;
+    const velocity = Math.abs(s.dragOffset) / Math.max(1, elapsed);
+    const threshold = wrapW * 0.08;
+    const shouldSlide =
+      Math.abs(s.dragOffset) > threshold ||
+      (velocity > 0.3 && Math.abs(s.dragOffset) > 15);
+
+    if (shouldSlide) {
+      const direction: 1 | -1 = s.dragOffset > 0 ? 1 : -1;
+      const target = activeIdx - direction;
+      if (target >= 0 && target < pages.length) {
+        slideTo(target, direction);
+        return;
+      }
+    }
+    // snap back
+    slideTo(activeIdx, null);
+  };
+
   if (loading) {
     return (
       <div className="aspect-[3/4] rounded-card border border-paper-border bg-paper-surface skeleton" />
@@ -78,10 +217,7 @@ export function PosterView({ eventId, onProductClick }: Props) {
           {pages.map((p, i) => (
             <button
               key={p.id}
-              onClick={() => {
-                setActiveIdx(i);
-                setImgReady(false);
-              }}
+              onClick={() => slideTo(i, null)}
               aria-label={p.title || `Sayfa ${i + 1}`}
               className={
                 "shrink-0 w-20 h-24 rounded-md overflow-hidden border-2 transition " +
@@ -93,7 +229,7 @@ export function PosterView({ eventId, onProductClick }: Props) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={posterImageUrl(p.image_path, { width: 200, quality: 70 })}
+                src={posterImageUrl(p.image_path, { width: 150, quality: 65 })}
                 alt={p.title || `Sayfa ${i + 1}`}
                 className="w-full h-full object-cover"
                 loading="lazy"
@@ -109,108 +245,115 @@ export function PosterView({ eventId, onProductClick }: Props) {
           ref={wrapRef}
           className="relative w-full bg-paper-surface rounded-card overflow-hidden shadow-card border border-paper-border"
         >
-          {!imgReady && (
-            <div className="aspect-[3/4] w-full skeleton rounded-card" />
-          )}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={posterImageUrl(activePage.image_path, {
-              width: 1800,
-              quality: 92,
-            })}
-            alt={activePage.title || ""}
-            className={
-              "w-full h-auto block transition-opacity duration-200 " +
-              (imgReady ? "opacity-100" : "opacity-0 absolute")
-            }
-            fetchPriority="high"
-            decoding="async"
-            onLoad={() => setImgReady(true)}
-          />
+          <div
+            ref={trackRef}
+            className="relative w-full will-change-transform"
+            style={{ touchAction: "pan-y" }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchEnd}
+          >
+            {!imgReady && (
+              <div className="aspect-[3/4] w-full skeleton rounded-card" />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={posterImageUrl(activePage.image_path, {
+                width: 1200,
+                quality: 85,
+              })}
+              alt={activePage.title || ""}
+              className={
+                "w-full h-auto block transition-opacity duration-200 select-none " +
+                (imgReady ? "opacity-100" : "opacity-0 absolute")
+              }
+              fetchPriority="high"
+              decoding="async"
+              draggable={false}
+              onLoad={() => setImgReady(true)}
+            />
 
-          {imgReady &&
-            pageMappings.map((m) => {
-              const left = `${m.x0 * 100}%`;
-              const top = `${m.y0 * 100}%`;
-              const width = `${(m.x1 - m.x0) * 100}%`;
-              const height = `${(m.y1 - m.y0) * 100}%`;
-              const disabled = !m.urun_kodu;
+            {imgReady &&
+              pageMappings.map((m) => {
+                const left = `${m.x0 * 100}%`;
+                const top = `${m.y0 * 100}%`;
+                const width = `${(m.x1 - m.x0) * 100}%`;
+                const height = `${(m.y1 - m.y0) * 100}%`;
+                const disabled = !m.urun_kodu;
 
-              const onActivate = () => {
-                if (!m.urun_kodu) return;
-                onProductClick({
-                  urun_kod: m.urun_kodu,
-                  urun_ad: m.urun_aciklamasi,
-                  max_normal: null,
-                  min_indirimli: null,
-                });
-              };
+                const onActivate = () => {
+                  if (!m.urun_kodu) return;
+                  // Drag sonrası gelen sentetik click'i bastır.
+                  if (touch.current.isDragging) return;
+                  onProductClick({
+                    urun_kod: m.urun_kodu,
+                    urun_ad: m.urun_aciklamasi,
+                    max_normal: null,
+                    min_indirimli: null,
+                  });
+                };
 
-              return (
-                <button
-                  key={m.mapping_id}
-                  type="button"
-                  onClick={onActivate}
-                  disabled={disabled}
-                  aria-label={
-                    m.urun_kodu
-                      ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
-                      : "Boş alan"
-                  }
-                  title={
-                    m.urun_kodu
-                      ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
-                      : ""
-                  }
-                  className={
-                    "absolute group rounded-sm transition " +
-                    (disabled
-                      ? "cursor-default"
-                      : "cursor-pointer hover:bg-brand/5 active:bg-brand/10")
-                  }
-                  style={{ left, top, width, height }}
-                >
-                  {!disabled && (
-                    <span
-                      aria-hidden
-                      className="absolute bottom-1.5 right-1.5
-                                 w-9 h-9 rounded-full
-                                 bg-white/30 backdrop-blur-sm
-                                 border border-white/50
-                                 text-white grid place-items-center
-                                 shadow-[0_2px_6px_rgba(0,0,0,0.25)]
-                                 transition
-                                 group-hover:bg-white/55 group-hover:scale-110
-                                 group-active:bg-brand group-active:border-brand
-                                 group-active:scale-95"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-5 h-5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
+                return (
+                  <button
+                    key={m.mapping_id}
+                    type="button"
+                    onClick={onActivate}
+                    disabled={disabled}
+                    aria-label={
+                      m.urun_kodu
+                        ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
+                        : "Boş alan"
+                    }
+                    title={
+                      m.urun_kodu
+                        ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
+                        : ""
+                    }
+                    className={
+                      "absolute group rounded-sm transition " +
+                      (disabled
+                        ? "cursor-default"
+                        : "cursor-pointer hover:bg-brand/5 active:bg-brand/10")
+                    }
+                    style={{ left, top, width, height }}
+                  >
+                    {!disabled && (
+                      <span
+                        aria-hidden
+                        className="absolute bottom-1.5 right-1.5
+                                   w-9 h-9 rounded-full
+                                   grid place-items-center
+                                   text-white
+                                   transition
+                                   group-hover:bg-white/35 group-hover:backdrop-blur-sm group-hover:scale-110
+                                   group-active:bg-brand group-active:scale-95"
                       >
-                        <circle cx="10" cy="10" r="6" />
-                        <line x1="14.5" y1="14.5" x2="20" y2="20" />
-                      </svg>
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-5 h-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                        >
+                          <circle cx="10" cy="10" r="6" />
+                          <line x1="14.5" y1="14.5" x2="20" y2="20" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </div>
         </div>
 
         {pages.length > 1 && (
           <>
             <button
               type="button"
-              onClick={() => {
-                setActiveIdx((i) => Math.max(0, i - 1));
-                setImgReady(false);
-              }}
+              onClick={() => slideTo(activeIdx - 1, null)}
               disabled={activeIdx === 0}
               aria-label="Önceki sayfa"
               className="absolute left-1 top-1/2 -translate-y-1/2 z-10
@@ -225,10 +368,7 @@ export function PosterView({ eventId, onProductClick }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveIdx((i) => Math.min(pages.length - 1, i + 1));
-                setImgReady(false);
-              }}
+              onClick={() => slideTo(activeIdx + 1, null)}
               disabled={activeIdx >= pages.length - 1}
               aria-label="Sonraki sayfa"
               className="absolute right-1 top-1/2 -translate-y-1/2 z-10
