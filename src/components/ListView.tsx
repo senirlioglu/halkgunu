@@ -200,14 +200,12 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
       <CategoryPills
         productCodes={products.map((p) => p.urun_kod)}
         selected={filter.categories}
-        onToggle={(cat) =>
-          setFilter({
-            ...filter,
-            categories: filter.categories.includes(cat)
-              ? filter.categories.filter((c) => c !== cat)
-              : [...filter.categories, cat],
-          })
-        }
+        onToggle={(cat) => {
+          // Tek seçimli: tıklanan zaten aktifse kapat, değilse sadece o.
+          const onlyThis =
+            filter.categories.length === 1 && filter.categories[0] === cat;
+          setFilter({ ...filter, categories: onlyThis ? [] : [cat] });
+        }}
         onClear={() => setFilter({ ...filter, categories: [] })}
       />
 
