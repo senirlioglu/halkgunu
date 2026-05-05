@@ -119,51 +119,7 @@ export function PosterView({ eventId, onProductClick }: Props) {
     [activeIdx, pages.length],
   );
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (touch.current.isSliding) return;
-    if (e.touches.length !== 1) return;
-    const t = e.touches[0];
-    touch.current = {
-      ...initialTouch,
-      startX: t.clientX,
-      startY: t.clientY,
-      startTime: Date.now(),
-    };
-    if (trackRef.current) {
-      trackRef.current.style.transition = "";
-    }
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    const s = touch.current;
-    if (s.isSliding || pages.length <= 1 || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const dx = t.clientX - s.startX;
-    const dy = t.clientY - s.startY;
-
-    if (!s.dirLocked && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
-      s.dirLocked = true;
-      s.isHorizontal = Math.abs(dx) > Math.abs(dy);
-    }
-    if (!s.isHorizontal) return; // dikey scroll'a izin ver
-
-    if (e.cancelable) e.preventDefault();
-    s.isDragging = true;
-
-    let offset = dx;
-    if (
-      (activeIdx === 0 && dx > 0) ||
-      (activeIdx === pages.length - 1 && dx < 0)
-    ) {
-      offset = dx * 0.25; // uçlarda direnç
-    }
-    s.dragOffset = offset;
-    if (trackRef.current) {
-      trackRef.current.style.transform = `translateX(${offset}px)`;
-    }
-  };
-
-  const onTouchEnd = () => {
+  const onTouchEnd = useCallback(() => {
     const s = touch.current;
     if (!s.isDragging) {
       if (trackRef.current) trackRef.current.style.transform = "";
@@ -185,9 +141,69 @@ export function PosterView({ eventId, onProductClick }: Props) {
         return;
       }
     }
-    // snap back
     slideTo(activeIdx, null);
-  };
+  }, [activeIdx, pages.length, slideTo]);
+
+  // React'in onTouch* prop'ları passive bağlandığı için preventDefault çalışmaz.
+  // Native listener'ları passive: false ile bağlıyoruz.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const onStart = (e: TouchEvent) => {
+      if (touch.current.isSliding) return;
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      touch.current = {
+        ...initialTouch,
+        startX: t.clientX,
+        startY: t.clientY,
+        startTime: Date.now(),
+      };
+      if (trackRef.current) trackRef.current.style.transition = "";
+    };
+
+    const onMove = (e: TouchEvent) => {
+      const s = touch.current;
+      if (s.isSliding || pages.length <= 1 || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - s.startX;
+      const dy = t.clientY - s.startY;
+
+      if (!s.dirLocked && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        s.dirLocked = true;
+        s.isHorizontal = Math.abs(dx) > Math.abs(dy);
+      }
+      if (!s.isHorizontal) return; // dikey scroll'a izin ver
+
+      // Yatay drag → tarayıcı default'unu bastır, kendimiz translate edelim.
+      e.preventDefault();
+      s.isDragging = true;
+
+      let offset = dx;
+      if (
+        (activeIdx === 0 && dx > 0) ||
+        (activeIdx === pages.length - 1 && dx < 0)
+      ) {
+        offset = dx * 0.25;
+      }
+      s.dragOffset = offset;
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translateX(${offset}px)`;
+      }
+    };
+
+    track.addEventListener("touchstart", onStart, { passive: true });
+    track.addEventListener("touchmove", onMove, { passive: false });
+    track.addEventListener("touchend", onTouchEnd);
+    track.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      track.removeEventListener("touchstart", onStart);
+      track.removeEventListener("touchmove", onMove);
+      track.removeEventListener("touchend", onTouchEnd);
+      track.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [activeIdx, pages.length, onTouchEnd]);
 
   if (loading) {
     return (
@@ -249,10 +265,6 @@ export function PosterView({ eventId, onProductClick }: Props) {
             ref={trackRef}
             className="relative w-full will-change-transform"
             style={{ touchAction: "pan-y" }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            onTouchCancel={onTouchEnd}
           >
             {!imgReady && (
               <div className="aspect-[3/4] w-full skeleton rounded-card" />
