@@ -5,6 +5,9 @@
 import { redirect } from "next/navigation";
 import { listActiveEvents } from "@/lib/api";
 
+// Anasayfa redirect mantığı — DB'deki son event listesine bakmalı, build-cache değil.
+export const dynamic = "force-dynamic";
+
 interface Props { searchParams: { event?: string }; }
 
 export default async function HomePage({ searchParams }: Props) {

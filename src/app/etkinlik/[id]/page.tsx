@@ -10,6 +10,10 @@ import EventClient from "./EventClient";
 
 interface Params { params: { id: string }; }
 
+// ISR: yeni eklenen aktif event'lerin frontend'e yansıması için 60 sn'de bir
+// generateStaticParams + generateMetadata yeniden koşar.
+export const revalidate = 60;
+
 // — Statik path üretimi (canlı eventler için pre-render)
 export async function generateStaticParams() {
   try {
