@@ -55,54 +55,66 @@ export default function EventClient({ events, initialEventId }: Props) {
     <main className="min-h-screen bg-paper-bg">
       <Header eventCount={events.length} />
 
-      <DateTabs
-        events={events}
-        activeEventId={activeEventId}
-        onSelectEvent={(id) => {
-          setActiveEventId(id);
-          setMode("liste");
-        }}
-      />
-      <ModeToggle
-        mode={mode}
-        hasPoster={hasPoster}
-        hasPhotos={hasPhotos}
-        onChange={setMode}
-      />
+      <div className="max-w-5xl mx-auto">
+        <DateTabs
+          events={events}
+          activeEventId={activeEventId}
+          onSelectEvent={(id) => {
+            setActiveEventId(id);
+            setMode("liste");
+          }}
+        />
+        <ModeToggle
+          mode={mode}
+          hasPoster={hasPoster}
+          hasPhotos={hasPhotos}
+          onChange={setMode}
+        />
 
-      {activeEvent && (
-        <div className="px-4 pt-3">
-          <h1 className="font-display text-lg font-extrabold text-ink-900 leading-tight">
-            {activeEvent.event_name}
-          </h1>
-          <p className="text-xs text-ink-500 mt-0.5">
-            {formatEventDate(activeEvent.event_date)}
-          </p>
+        {activeEvent && (
+          <div className="px-4 pt-3">
+            <h1 className="font-display text-lg font-extrabold text-ink-900 leading-tight">
+              {activeEvent.event_name}
+            </h1>
+            <p className="text-xs text-ink-500 mt-0.5">
+              {formatEventDate(activeEvent.event_date)}
+            </p>
+          </div>
+        )}
+
+        {/* Poster modu: max-w-3xl (~768px) + image içinde max-h-[85vh] —
+            Ara'nın layout="wide" + height=900 iframe'iyle benzer ferah bir
+            kutu. Desktop'ta yatay yayılma yok, mobilde tam genişlik. */}
+        <div
+          className={
+            "pb-12 pt-3 " +
+            (mode === "afis" && hasPoster
+              ? "px-4 max-w-3xl mx-auto"
+              : "px-4")
+          }
+        >
+          {mode === "afis" && hasPoster && activeEvent ? (
+            <PosterView
+              eventId={activeEvent.event_id}
+              onProductClick={(p) =>
+                setActiveProduct({
+                  urun_kod: p.urun_kod,
+                  urun_ad: p.urun_ad,
+                  max_normal: p.max_normal,
+                  min_indirimli: p.min_indirimli,
+                })
+              }
+            />
+          ) : mode === "fotograflar" && hasPhotos && activeEvent ? (
+            <PhotosView eventId={activeEvent.event_id} />
+          ) : activeEvent ? (
+            <ListView
+              eventId={activeEvent.event_id}
+              onProductClick={setActiveProduct}
+              onGeoPermission={(_g, pos) => pos && setUserPos(pos)}
+            />
+          ) : null}
         </div>
-      )}
-
-      <div className="px-4 pb-12 pt-3">
-        {mode === "afis" && hasPoster && activeEvent ? (
-          <PosterView
-            eventId={activeEvent.event_id}
-            onProductClick={(p) =>
-              setActiveProduct({
-                urun_kod: p.urun_kod,
-                urun_ad: p.urun_ad,
-                max_normal: p.max_normal,
-                min_indirimli: p.min_indirimli,
-              })
-            }
-          />
-        ) : mode === "fotograflar" && hasPhotos && activeEvent ? (
-          <PhotosView eventId={activeEvent.event_id} />
-        ) : activeEvent ? (
-          <ListView
-            eventId={activeEvent.event_id}
-            onProductClick={setActiveProduct}
-            onGeoPermission={(_g, pos) => pos && setUserPos(pos)}
-          />
-        ) : null}
       </div>
 
       {activeEvent && (
