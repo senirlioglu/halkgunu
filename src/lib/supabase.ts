@@ -26,6 +26,20 @@ export function productImageUrl(urunKod: string): string {
     .getPublicUrl(`${safeProductCode(urunKod)}.jpg`).data.publicUrl;
 }
 
-export function posterImageUrl(path: string): string {
+interface PosterOpts {
+  width?: number;
+  quality?: number;
+}
+
+export function posterImageUrl(path: string, opts?: PosterOpts): string {
+  if (opts && (opts.width || opts.quality)) {
+    return supabase.storage.from(POSTER_BUCKET).getPublicUrl(path, {
+      transform: {
+        width: opts.width,
+        quality: opts.quality ?? 90,
+        resize: "contain",
+      },
+    }).data.publicUrl;
+  }
   return supabase.storage.from(POSTER_BUCKET).getPublicUrl(path).data.publicUrl;
 }
