@@ -3,8 +3,6 @@
 import type { HalkgunuEvent } from "@/lib/types";
 import type { ViewMode } from "@/lib/viewMode";
 
-const MONTHS = ["OCA","ŞUB","MAR","NİS","MAY","HAZ","TEM","AĞU","EYL","EKİ","KAS","ARA"];
-
 interface Props {
   events: HalkgunuEvent[];
   activeEventId: string | null;
@@ -14,10 +12,13 @@ interface Props {
 export function DateTabs({ events, activeEventId, onSelectEvent }: Props) {
   if (events.length === 0) return null;
   return (
-    <div className="overflow-x-auto no-scrollbar -mx-4 px-4 pt-2.5">
-      <div className="flex gap-2 snap-x" role="tablist" aria-label="Etkinlik tarihleri">
+    <div className="overflow-x-auto no-scrollbar -mx-4 px-4 pt-3">
+      <div
+        className="flex gap-2 snap-x"
+        role="tablist"
+        aria-label="Etkinlik tarihleri"
+      >
         {events.map((ev) => {
-          const d = new Date(ev.event_date);
           const active = ev.event_id === activeEventId;
           return (
             <button
@@ -26,21 +27,13 @@ export function DateTabs({ events, activeEventId, onSelectEvent }: Props) {
               aria-selected={active}
               onClick={() => onSelectEvent(ev.event_id)}
               className={
-                "snap-start whitespace-nowrap rounded-[12px] px-3.5 py-2 flex items-center gap-2.5 transition " +
+                "snap-start whitespace-nowrap rounded-full px-5 py-2.5 text-[14px] font-semibold transition " +
                 (active
-                  ? "text-white shadow-card bg-gradient-to-br from-brand to-accent"
-                  : "bg-paper-surface text-ink-900 border border-paper-border")
+                  ? "bg-brand text-white shadow-[0_4px_15px_rgba(193,39,45,0.25)]"
+                  : "bg-paper-surface text-ink-700 border border-paper-border hover:border-ink-300")
               }
             >
-              <span className="flex flex-col items-center leading-none">
-                <span className={"text-[9px] font-bold tracking-[0.08em] " + (active ? "opacity-85" : "opacity-60")}>
-                  {MONTHS[d.getMonth()]}
-                </span>
-                <span className="font-display text-[18px] font-extrabold mt-0.5 tracking-tightest">
-                  {d.getDate()}
-                </span>
-              </span>
-              <span className="text-[13px] font-semibold">{ev.event_name}</span>
+              {ev.event_name}
             </button>
           );
         })}
