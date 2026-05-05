@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listEventPages, listEventPhotos } from "@/lib/api";
-import type { HalkgunuEvent, HalkgunuProductSummary } from "@/lib/types";
+import { posterImageUrl } from "@/lib/supabase";
+import type { HalkgunuEvent, HalkgunuPage, HalkgunuProductSummary } from "@/lib/types";
 import type { ViewMode } from "@/lib/viewMode";
 import { Header } from "@/components/Header";
 import { DateTabs, ModeToggle } from "@/components/EventTabs";
@@ -30,8 +31,19 @@ export default function EventClient({ events, initialEventId }: Props) {
   };
   const [hasPoster, setHasPoster] = useState(false);
   const [hasPhotos, setHasPhotos] = useState(false);
+  const [pages, setPages] = useState<HalkgunuPage[]>([]);
+  // Mode bir kez aktive olunca DOM'da kalsın — geri dönünce remount olmasın.
+  const [mounted, setMounted] = useState<Record<ViewMode, boolean>>({
+    liste: false,
+    afis: true,
+    fotograflar: false,
+  });
   const [activeProduct, setActiveProduct] = useState<HalkgunuProductSummary | null>(null);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    setMounted((prev) => (prev[mode] ? prev : { ...prev, [mode]: true }));
+  }, [mode]);
 
   useEffect(() => {
     if (activeEventId !== initialEventId) {
@@ -51,6 +63,7 @@ export default function EventClient({ events, initialEventId }: Props) {
     listEventPages(activeEventId)
       .then((p) => {
         if (cancelled) return;
+        setPages(p);
         const has = p.length > 0;
         setHasPoster(has);
         // Afiş yoksa ve kullanıcı henüz seçim yapmadıysa otomatik liste'ye düş.
@@ -58,7 +71,12 @@ export default function EventClient({ events, initialEventId }: Props) {
           setModeState("liste");
         }
       })
-      .catch(() => !cancelled && setHasPoster(false));
+      .catch(() => {
+        if (!cancelled) {
+          setPages([]);
+          setHasPoster(false);
+        }
+      });
     listEventPhotos(activeEventId)
       .then((ph) => !cancelled && setHasPhotos(ph.length > 0))
       .catch(() => !cancelled && setHasPhotos(false));
@@ -66,6 +84,13 @@ export default function EventClient({ events, initialEventId }: Props) {
       cancelled = true;
     };
   }, [activeEventId]);
+
+  // Liste/Foto modundayken ilk afiş sayfasını arka planda önyükle —
+  // kullanıcı "Afiş"e geçince görsel cache'ten anında gelir.
+  const firstPosterUrl = useMemo(() => {
+    if (pages.length === 0) return null;
+    return posterImageUrl(pages[0].image_path, { width: 1200, quality: 85 });
+  }, [pages]);
 
   const activeEvent = useMemo(
     () => events.find((e) => e.event_id === activeEventId) ?? null,
@@ -75,6 +100,19 @@ export default function EventClient({ events, initialEventId }: Props) {
   return (
     <main className="min-h-screen bg-paper-bg">
       <Header eventCount={events.length} />
+
+      {firstPosterUrl && (
+        // Browser cache'e indirir, görüntüde yer kaplamaz.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={firstPosterUrl}
+          alt=""
+          aria-hidden
+          loading="eager"
+          decoding="async"
+          className="absolute opacity-0 pointer-events-none w-px h-px"
+        />
+      )}
 
       <div className="max-w-5xl mx-auto">
         <DateTabs
@@ -103,18 +141,15 @@ export default function EventClient({ events, initialEventId }: Props) {
           </div>
         )}
 
-        {/* Poster modu: max-w-3xl (~768px) + image içinde max-h-[85vh] —
-            Ara'nın layout="wide" + height=900 iframe'iyle benzer ferah bir
-            kutu. Desktop'ta yatay yayılma yok, mobilde tam genişlik. */}
+        {/* Tüm view'lar bir kez mount olunca DOM'da kalır; sadece aktif olan
+            görünür (display:none gizler). Geçişler anında. */}
         <div
           className={
-            "pb-12 pt-3 " +
-            (mode === "afis" && hasPoster
-              ? "px-4 max-w-3xl mx-auto"
-              : "px-4")
+            "pb-12 pt-3 px-4 max-w-3xl mx-auto " +
+            (mode === "afis" && hasPoster ? "" : "hidden")
           }
         >
-          {mode === "afis" && hasPoster && activeEvent ? (
+          {mounted.afis && activeEvent && (
             <PosterView
               eventId={activeEvent.event_id}
               onProductClick={(p) =>
@@ -126,15 +161,35 @@ export default function EventClient({ events, initialEventId }: Props) {
                 })
               }
             />
-          ) : mode === "fotograflar" && hasPhotos && activeEvent ? (
+          )}
+        </div>
+
+        <div
+          className={
+            "pb-12 pt-3 px-4 " +
+            (mode === "fotograflar" && hasPhotos ? "" : "hidden")
+          }
+        >
+          {mounted.fotograflar && activeEvent && (
             <PhotosView eventId={activeEvent.event_id} />
-          ) : activeEvent ? (
+          )}
+        </div>
+
+        <div
+          className={
+            "pb-12 pt-3 px-4 " +
+            (mode === "liste" || (mode === "afis" && !hasPoster)
+              ? ""
+              : "hidden")
+          }
+        >
+          {mounted.liste && activeEvent && (
             <ListView
               eventId={activeEvent.event_id}
               onProductClick={setActiveProduct}
               onGeoPermission={(_g, pos) => pos && setUserPos(pos)}
             />
-          ) : null}
+          )}
         </div>
       </div>
 

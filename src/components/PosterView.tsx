@@ -93,7 +93,7 @@ export function PosterView({ eventId, onProductClick }: Props) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={posterImageUrl(p.image_path, { width: 200, quality: 70 })}
+                src={posterImageUrl(p.image_path, { width: 150, quality: 65 })}
                 alt={p.title || `Sayfa ${i + 1}`}
                 className="w-full h-full object-cover"
                 loading="lazy"
@@ -115,8 +115,8 @@ export function PosterView({ eventId, onProductClick }: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={posterImageUrl(activePage.image_path, {
-              width: 1800,
-              quality: 92,
+              width: 1200,
+              quality: 85,
             })}
             alt={activePage.title || ""}
             className={
