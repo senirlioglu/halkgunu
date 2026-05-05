@@ -104,99 +104,143 @@ export function PosterView({ eventId, onProductClick }: Props) {
         </div>
       )}
 
-      <div
-        ref={wrapRef}
-        className="relative w-full bg-paper-surface rounded-card overflow-hidden shadow-card border border-paper-border"
-      >
-        {!imgReady && (
-          <div className="aspect-[3/4] w-full skeleton rounded-card" />
-        )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={posterImageUrl(activePage.image_path, {
-            width: 1800,
-            quality: 92,
-          })}
-          alt={activePage.title || ""}
-          className={
-            "w-full h-auto block transition-opacity duration-200 " +
-            (imgReady ? "opacity-100" : "opacity-0 absolute")
-          }
-          fetchPriority="high"
-          decoding="async"
-          onLoad={() => setImgReady(true)}
-        />
+      <div className="relative">
+        <div
+          ref={wrapRef}
+          className="relative w-full bg-paper-surface rounded-card overflow-hidden shadow-card border border-paper-border"
+        >
+          {!imgReady && (
+            <div className="aspect-[3/4] w-full skeleton rounded-card" />
+          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={posterImageUrl(activePage.image_path, {
+              width: 1800,
+              quality: 92,
+            })}
+            alt={activePage.title || ""}
+            className={
+              "w-full h-auto block transition-opacity duration-200 " +
+              (imgReady ? "opacity-100" : "opacity-0 absolute")
+            }
+            fetchPriority="high"
+            decoding="async"
+            onLoad={() => setImgReady(true)}
+          />
 
-        {imgReady &&
-          pageMappings.map((m) => {
-            const left = `${m.x0 * 100}%`;
-            const top = `${m.y0 * 100}%`;
-            const width = `${(m.x1 - m.x0) * 100}%`;
-            const height = `${(m.y1 - m.y0) * 100}%`;
-            const disabled = !m.urun_kodu;
+          {imgReady &&
+            pageMappings.map((m) => {
+              const left = `${m.x0 * 100}%`;
+              const top = `${m.y0 * 100}%`;
+              const width = `${(m.x1 - m.x0) * 100}%`;
+              const height = `${(m.y1 - m.y0) * 100}%`;
+              const disabled = !m.urun_kodu;
 
-            const onActivate = () => {
-              if (!m.urun_kodu) return;
-              onProductClick({
-                urun_kod: m.urun_kodu,
-                urun_ad: m.urun_aciklamasi,
-                max_normal: null,
-                min_indirimli: null,
-              });
-            };
+              const onActivate = () => {
+                if (!m.urun_kodu) return;
+                onProductClick({
+                  urun_kod: m.urun_kodu,
+                  urun_ad: m.urun_aciklamasi,
+                  max_normal: null,
+                  min_indirimli: null,
+                });
+              };
 
-            return (
-              <button
-                key={m.mapping_id}
-                type="button"
-                onClick={onActivate}
-                disabled={disabled}
-                aria-label={
-                  m.urun_kodu
-                    ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
-                    : "Boş alan"
-                }
-                title={
-                  m.urun_kodu
-                    ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
-                    : ""
-                }
-                className={
-                  "absolute group rounded-sm transition " +
-                  (disabled
-                    ? "cursor-default"
-                    : "cursor-pointer hover:bg-brand/5 active:bg-brand/10")
-                }
-                style={{ left, top, width, height }}
-              >
-                {!disabled && (
-                  <span
-                    aria-hidden
-                    className="absolute bottom-1 right-1 w-7 h-7 rounded-full
-                               bg-white/75 text-ink-700 grid place-items-center
-                               shadow-[0_1px_4px_rgba(0,0,0,0.25)]
-                               transition opacity-90
-                               group-hover:bg-white group-hover:scale-110
-                               group-active:bg-brand group-active:text-white
-                               group-active:scale-95"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-[60%] h-[60%]"
+              return (
+                <button
+                  key={m.mapping_id}
+                  type="button"
+                  onClick={onActivate}
+                  disabled={disabled}
+                  aria-label={
+                    m.urun_kodu
+                      ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
+                      : "Boş alan"
+                  }
+                  title={
+                    m.urun_kodu
+                      ? `${m.urun_kodu}${m.urun_aciklamasi ? " — " + m.urun_aciklamasi : ""}`
+                      : ""
+                  }
+                  className={
+                    "absolute group rounded-sm transition " +
+                    (disabled
+                      ? "cursor-default"
+                      : "cursor-pointer hover:bg-brand/5 active:bg-brand/10")
+                  }
+                  style={{ left, top, width, height }}
+                >
+                  {!disabled && (
+                    <span
+                      aria-hidden
+                      className="absolute bottom-1.5 right-1.5
+                                 w-9 h-9 rounded-full
+                                 bg-white text-ink-700 grid place-items-center
+                                 shadow-[0_2px_8px_rgba(0,0,0,0.2)]
+                                 transition
+                                 group-hover:scale-110 group-hover:shadow-[0_4px_14px_rgba(0,0,0,0.28)]
+                                 group-active:bg-brand group-active:text-white
+                                 group-active:scale-95"
                     >
-                      <circle cx="10" cy="10" r="6" />
-                      <line x1="14.5" y1="14.5" x2="20" y2="20" />
-                    </svg>
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-5 h-5"
+                      >
+                        <circle cx="10" cy="10" r="6" />
+                        <line x1="14.5" y1="14.5" x2="20" y2="20" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+        </div>
+
+        {pages.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveIdx((i) => Math.max(0, i - 1));
+                setImgReady(false);
+              }}
+              disabled={activeIdx === 0}
+              aria-label="Önceki sayfa"
+              className="absolute left-1 top-1/2 -translate-y-1/2 z-10
+                         w-10 h-10 rounded-full
+                         bg-ink-900/85 text-white text-xl
+                         grid place-items-center
+                         shadow-[0_2px_8px_rgba(0,0,0,0.25)]
+                         hover:bg-ink-900 transition
+                         disabled:opacity-30 disabled:pointer-events-none"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveIdx((i) => Math.min(pages.length - 1, i + 1));
+                setImgReady(false);
+              }}
+              disabled={activeIdx >= pages.length - 1}
+              aria-label="Sonraki sayfa"
+              className="absolute right-1 top-1/2 -translate-y-1/2 z-10
+                         w-10 h-10 rounded-full
+                         bg-ink-900/85 text-white text-xl
+                         grid place-items-center
+                         shadow-[0_2px_8px_rgba(0,0,0,0.25)]
+                         hover:bg-ink-900 transition
+                         disabled:opacity-30 disabled:pointer-events-none"
+            >
+              ›
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
