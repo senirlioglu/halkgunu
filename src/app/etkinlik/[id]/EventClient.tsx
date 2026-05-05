@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listEventPages, listEventPhotos } from "@/lib/api";
 import type { HalkgunuEvent, HalkgunuProductSummary } from "@/lib/types";
@@ -21,7 +21,13 @@ interface Props {
 export default function EventClient({ events, initialEventId }: Props) {
   const router = useRouter();
   const [activeEventId, setActiveEventId] = useState<string>(initialEventId);
-  const [mode, setMode] = useState<ViewMode>("liste");
+  // İlk açılış afiş olarak başlasın; afiş yoksa effect liste'ye düşürür.
+  const [mode, setModeState] = useState<ViewMode>("afis");
+  const userPickedMode = useRef(false);
+  const setMode = (m: ViewMode) => {
+    userPickedMode.current = true;
+    setModeState(m);
+  };
   const [hasPoster, setHasPoster] = useState(false);
   const [hasPhotos, setHasPhotos] = useState(false);
   const [activeProduct, setActiveProduct] = useState<HalkgunuProductSummary | null>(null);
@@ -33,10 +39,25 @@ export default function EventClient({ events, initialEventId }: Props) {
     }
   }, [activeEventId, initialEventId, router]);
 
+  // Etkinlik değişince kullanıcı tercihi sıfırlansın — yeni etkinlik için
+  // varsayılan tekrar afiş.
+  useEffect(() => {
+    userPickedMode.current = false;
+    setModeState("afis");
+  }, [activeEventId]);
+
   useEffect(() => {
     let cancelled = false;
     listEventPages(activeEventId)
-      .then((p) => !cancelled && setHasPoster(p.length > 0))
+      .then((p) => {
+        if (cancelled) return;
+        const has = p.length > 0;
+        setHasPoster(has);
+        // Afiş yoksa ve kullanıcı henüz seçim yapmadıysa otomatik liste'ye düş.
+        if (!has && !userPickedMode.current) {
+          setModeState("liste");
+        }
+      })
       .catch(() => !cancelled && setHasPoster(false));
     listEventPhotos(activeEventId)
       .then((ph) => !cancelled && setHasPhotos(ph.length > 0))
