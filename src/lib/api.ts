@@ -105,11 +105,19 @@ export async function listEventProductSummary(
   });
 }
 
+export interface EventStoreCatalogStore {
+  magaza_kod: string;
+  magaza_adi: string | null;
+  adres: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface EventStoreCatalog {
   // urun_kod → mağaza kodları (filtre için)
   storeMap: Record<string, string[]>;
-  // distinct mağaza listesi (filtre arayüzü için, magaza_adi ile)
-  stores: { magaza_kod: string; magaza_adi: string | null }[];
+  // distinct mağaza listesi (filtre + mağaza view için, magaza_adi/adres/koordinat ile)
+  stores: EventStoreCatalogStore[];
 }
 
 export async function listEventStoreCatalog(
@@ -129,18 +137,21 @@ export async function listEventStoreCatalog(
     kodSet.add(r.magaza_kod);
   }
 
-  let stores: { magaza_kod: string; magaza_adi: string | null }[] = [];
+  let stores: EventStoreCatalogStore[] = [];
   if (kodSet.size > 0) {
     const { data: rows, error: e2 } = await supabase
       .from("magazalar")
-      .select("magaza_kod, magaza_adi")
+      .select("magaza_kod, magaza_adi, adres, latitude, longitude")
       .in("magaza_kod", Array.from(kodSet));
     if (!e2 && rows) {
-      stores = rows as typeof stores;
+      stores = rows as EventStoreCatalogStore[];
     } else {
       stores = Array.from(kodSet).map((k) => ({
         magaza_kod: k,
         magaza_adi: null,
+        adres: null,
+        latitude: null,
+        longitude: null,
       }));
     }
   }

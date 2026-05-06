@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { listEventPages, listEventPhotos } from "@/lib/api";
+import {
+  listEventPages,
+  listEventPhotos,
+  listEventStoreCatalog,
+} from "@/lib/api";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuEvent, HalkgunuPage, HalkgunuProductSummary } from "@/lib/types";
 import type { ViewMode } from "@/lib/viewMode";
@@ -11,6 +15,7 @@ import { DateTabs, ModeToggle } from "@/components/EventTabs";
 import { ListView } from "@/components/ListView";
 import { PhotosView } from "@/components/PhotosView";
 import { PosterView } from "@/components/PosterView";
+import { StoresView } from "@/components/StoresView";
 import { StoreModal } from "@/components/StoreModal";
 import { formatEventDate } from "@/lib/format";
 
@@ -31,12 +36,14 @@ export default function EventClient({ events, initialEventId }: Props) {
   };
   const [hasPoster, setHasPoster] = useState(false);
   const [hasPhotos, setHasPhotos] = useState(false);
+  const [hasStores, setHasStores] = useState(false);
   const [pages, setPages] = useState<HalkgunuPage[]>([]);
   // Mode bir kez aktive olunca DOM'da kalsın — geri dönünce remount olmasın.
   const [mounted, setMounted] = useState<Record<ViewMode, boolean>>({
     liste: false,
     afis: true,
     fotograflar: false,
+    magazalar: false,
   });
   const [activeProduct, setActiveProduct] = useState<HalkgunuProductSummary | null>(null);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -80,6 +87,9 @@ export default function EventClient({ events, initialEventId }: Props) {
     listEventPhotos(activeEventId)
       .then((ph) => !cancelled && setHasPhotos(ph.length > 0))
       .catch(() => !cancelled && setHasPhotos(false));
+    listEventStoreCatalog(activeEventId)
+      .then((c) => !cancelled && setHasStores(c.stores.length > 0))
+      .catch(() => !cancelled && setHasStores(false));
     return () => {
       cancelled = true;
     };
@@ -127,6 +137,7 @@ export default function EventClient({ events, initialEventId }: Props) {
           mode={mode}
           hasPoster={hasPoster}
           hasPhotos={hasPhotos}
+          hasStores={hasStores}
           onChange={setMode}
         />
 
@@ -172,6 +183,20 @@ export default function EventClient({ events, initialEventId }: Props) {
         >
           {mounted.fotograflar && activeEvent && (
             <PhotosView eventId={activeEvent.event_id} />
+          )}
+        </div>
+
+        <div
+          className={
+            "pb-12 pt-3 px-4 " +
+            (mode === "magazalar" && hasStores ? "" : "hidden")
+          }
+        >
+          {mounted.magazalar && activeEvent && (
+            <StoresView
+              eventId={activeEvent.event_id}
+              userPos={userPos}
+            />
           )}
         </div>
 

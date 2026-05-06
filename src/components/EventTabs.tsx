@@ -46,13 +46,28 @@ interface ModeProps {
   mode: ViewMode;
   hasPoster: boolean;
   hasPhotos: boolean;
+  hasStores: boolean;
   onChange: (m: ViewMode) => void;
 }
 
-export function ModeToggle({ mode, hasPoster, hasPhotos, onChange }: ModeProps) {
+export function ModeToggle({
+  mode,
+  hasPoster,
+  hasPhotos,
+  hasStores,
+  onChange,
+}: ModeProps) {
   const Item = ({
-    icon, label, value, color,
-  }: { icon: string; label: string; value: ViewMode; color: string }) => {
+    icon,
+    label,
+    value,
+    color,
+  }: {
+    icon: string;
+    label: string;
+    value: ViewMode;
+    color: string;
+  }) => {
     const active = mode === value;
     return (
       <button
@@ -65,15 +80,33 @@ export function ModeToggle({ mode, hasPoster, hasPhotos, onChange }: ModeProps) 
             : "bg-paper-surface text-ink-700 border border-paper-border")
         }
       >
-        <span className="text-sm">{icon}</span>{label}
+        <span className="text-sm">{icon}</span>
+        {label}
       </button>
     );
   };
   return (
-    <div className="flex gap-1.5 px-4 pt-3">
+    <div className="flex gap-1.5 px-4 pt-3 flex-wrap">
       <Item icon="☰" label="Liste" value="liste" color="bg-brand" />
-      {hasPoster && <Item icon="🖼" label="Afiş" value="afis" color="bg-accent" />}
-      {hasPhotos && <Item icon="📷" label="Fotoğraflar" value="fotograflar" color="bg-success" />}
+      {hasPoster && (
+        <Item icon="🖼" label="Afiş" value="afis" color="bg-accent" />
+      )}
+      {hasStores && (
+        <Item
+          icon="📍"
+          label="Geçerli Olduğu Mağazalar"
+          value="magazalar"
+          color="bg-ink-900"
+        />
+      )}
+      {hasPhotos && (
+        <Item
+          icon="📷"
+          label="Fotoğraflar"
+          value="fotograflar"
+          color="bg-success"
+        />
+      )}
     </div>
   );
 }
