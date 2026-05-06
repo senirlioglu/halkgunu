@@ -62,12 +62,19 @@ export default function Lightbox({ photos, startIndex, onClose }: Props) {
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3"
         onClick={(e) => e.stopPropagation()}>
-        <span className="font-display text-sm font-bold text-white/90">
+        <span className="font-display text-sm font-bold text-white/90 px-3 py-1 rounded-full bg-white/10 backdrop-blur">
           {idx + 1} <span className="text-white/50">/ {total}</span>
         </span>
-        <button onClick={onClose} aria-label="Kapat"
-          className="w-9 h-9 rounded-full bg-white/10 backdrop-blur grid place-items-center
-                     text-white text-xl leading-none active:bg-white/20">×</button>
+        <button
+          onClick={onClose}
+          aria-label="Kapat"
+          className="w-11 h-11 rounded-full bg-white/25 hover:bg-white/35 backdrop-blur
+                     grid place-items-center text-white text-2xl leading-none
+                     border border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.4)]
+                     active:scale-95 transition"
+        >
+          ×
+        </button>
       </div>
 
       {/* Image area */}
