@@ -3,9 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { listEventStoreCatalog, type EventStoreCatalogStore } from "@/lib/api";
 
+type SortKey = "ad" | "yakinlik";
+
 interface Props {
   eventId: string;
   userPos?: { lat: number; lng: number } | null;
+  onUserPos?: (pos: { lat: number; lng: number }) => void;
 }
 
 function distanceKm(
@@ -35,10 +38,13 @@ function directionsHref(s: EventStoreCatalogStore): string | null {
   return null;
 }
 
-export function StoresView({ eventId, userPos }: Props) {
+export function StoresView({ eventId, userPos, onUserPos }: Props) {
   const [stores, setStores] = useState<EventStoreCatalogStore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortKey>("ad");
+  const [geoPending, setGeoPending] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,12 +59,52 @@ export function StoresView({ eventId, userPos }: Props) {
     };
   }, [eventId]);
 
-  const sorted = useMemo(() => {
-    if (!userPos) return stores;
-    return [...stores].sort(
-      (a, b) => distanceKm(userPos, a) - distanceKm(userPos, b),
+  const requestGeo = () => {
+    if (!("geolocation" in navigator)) {
+      setGeoError("Tarayıcı konumu desteklemiyor.");
+      return;
+    }
+    setGeoPending(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setGeoPending(false);
+        const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        onUserPos?.(pos);
+      },
+      (err) => {
+        setGeoPending(false);
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? "Konum izni reddedildi. Tarayıcı ayarlarından izin verebilirsin."
+            : "Konum alınamadı.",
+        );
+        setSort("ad");
+      },
+      { enableHighAccuracy: false, timeout: 8000 },
     );
-  }, [stores, userPos]);
+  };
+
+  const handleSortChange = (key: SortKey) => {
+    setSort(key);
+    if (key === "yakinlik" && !userPos && !geoPending) {
+      requestGeo();
+    }
+  };
+
+  const sorted = useMemo(() => {
+    if (sort === "yakinlik" && userPos) {
+      return [...stores].sort(
+        (a, b) => distanceKm(userPos, a) - distanceKm(userPos, b),
+      );
+    }
+    return [...stores].sort((a, b) =>
+      (a.magaza_adi ?? a.magaza_kod).localeCompare(
+        b.magaza_adi ?? b.magaza_kod,
+        "tr",
+      ),
+    );
+  }, [stores, sort, userPos]);
 
   if (loading) {
     return (
@@ -85,10 +131,62 @@ export function StoresView({ eventId, userPos }: Props) {
 
   return (
     <div>
-      <p className="text-[11px] text-ink-500 mb-3 px-1">
-        Bu Halk Günü&apos;nde indirim **{stores.length} mağazada** geçerli
-        {userPos ? " · konumuna göre sıralı" : ""}.
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-3 px-1">
+        <p className="text-[11px] text-ink-500">
+          Bu Halk Günü&apos;nde indirim {stores.length} mağazada geçerli
+          {sort === "yakinlik" && userPos ? " · konumuna göre sıralı" : ""}
+          {sort === "yakinlik" && geoPending ? " · konum alınıyor…" : ""}
+        </p>
+        <div className="inline-flex bg-paper-bg rounded-full p-0.5 gap-0.5 border border-paper-border">
+          <button
+            onClick={() => handleSortChange("ad")}
+            aria-pressed={sort === "ad"}
+            className={
+              "px-3 py-1 rounded-full text-[11px] font-bold transition " +
+              (sort === "ad"
+                ? "bg-paper-surface text-ink-900 shadow-sm"
+                : "text-ink-500")
+            }
+          >
+            A-Z
+          </button>
+          <button
+            onClick={() => handleSortChange("yakinlik")}
+            aria-pressed={sort === "yakinlik"}
+            className={
+              "px-3 py-1 rounded-full text-[11px] font-bold transition " +
+              (sort === "yakinlik"
+                ? "bg-paper-surface text-ink-900 shadow-sm"
+                : "text-ink-500")
+            }
+          >
+            Yakınlık
+          </button>
+        </div>
+      </div>
+
+      {sort === "yakinlik" && !userPos && !geoPending && (
+        <div className="mb-3 mx-1 flex items-center gap-2.5 bg-accent-soft border-2 border-dashed border-accent/50 rounded-card px-3 py-2.5">
+          <span className="w-8 h-8 rounded-full bg-accent text-white grid place-items-center shrink-0">
+            📍
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-ink-900">
+              Konumuna izin ver
+            </div>
+            <div className="text-[11px] text-ink-500 mt-0.5">
+              {geoError ?? "En yakın mağazayı görmek için konumunu paylaş"}
+            </div>
+          </div>
+          <button
+            onClick={requestGeo}
+            className="px-2.5 py-1.5 text-[11px] font-bold text-white bg-accent rounded-full"
+          >
+            İzin ver
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {sorted.map((s) => {
           const href = directionsHref(s);

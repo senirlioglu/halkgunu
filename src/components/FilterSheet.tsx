@@ -6,7 +6,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { matchTr } from "@/lib/search";
 
-export type SortKey = "indirim" | "fiyat_artan" | "fiyat_azalan" | "yakinlik" | "stok";
+export type SortKey =
+  | "oneri"
+  | "indirim"
+  | "fiyat_artan"
+  | "fiyat_azalan"
+  | "yakinlik"
+  | "stok";
 
 export interface FilterState {
   categories: string[];        // seçili kategori adları
@@ -16,7 +22,7 @@ export interface FilterState {
 }
 
 export const DEFAULT_FILTER: FilterState = {
-  categories: [], stores: [], minDiscount: 0, sort: "indirim",
+  categories: [], stores: [], minDiscount: 0, sort: "oneri",
 };
 
 interface Props {
@@ -105,6 +111,7 @@ export function FilterSheet({
           <Section title="Sıralama">
             <div className="grid grid-cols-1 gap-1.5">
               {([
+                ["oneri", "Önerilen sıralama", false],
                 ["indirim", "En çok indirim", false],
                 ["fiyat_artan", "En düşük fiyat", false],
                 ["fiyat_azalan", "En yüksek fiyat", false],
@@ -243,7 +250,7 @@ export function filterToQuery(f: FilterState): URLSearchParams {
   if (f.categories.length) sp.set("cat", f.categories.join(","));
   if (f.stores.length) sp.set("store", f.stores.join(","));
   if (f.minDiscount > 0) sp.set("min", String(f.minDiscount));
-  if (f.sort !== "indirim") sp.set("sort", f.sort);
+  if (f.sort !== "oneri") sp.set("sort", f.sort);
   return sp;
 }
 
@@ -252,6 +259,6 @@ export function queryToFilter(sp: URLSearchParams): FilterState {
     categories: sp.get("cat")?.split(",").filter(Boolean) ?? [],
     stores: sp.get("store")?.split(",").filter(Boolean) ?? [],
     minDiscount: Number(sp.get("min") ?? 0) || 0,
-    sort: ((sp.get("sort") as SortKey) ?? "indirim"),
+    sort: ((sp.get("sort") as SortKey) ?? "oneri"),
   };
 }
