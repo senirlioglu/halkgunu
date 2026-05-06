@@ -196,6 +196,7 @@ export default function EventClient({ events, initialEventId }: Props) {
             <StoresView
               eventId={activeEvent.event_id}
               userPos={userPos}
+              onUserPos={setUserPos}
             />
           )}
         </div>

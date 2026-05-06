@@ -227,6 +227,32 @@ Halk Günü admin sekmesine **"Ürün Sırası"** alt sekmesi ekle. UX:
 
 ---
 
+## 7.4 İsteğe bağlı — Etkinlik bazında varsayılan sıralama
+
+Frontend default sort'u `"oneri"` (= API'den gelen sırayı koru, manuel
+order varsa onu, yoksa alfabetik). Admin manuel reorder yaparsa
+müşteri otomatik o sırayı görür.
+
+Admin **algoritmik bir default** (örn. "her zaman en çok indirim öncelikli")
+seçmek isterse `halkgunu_events` tablosuna kolon ekleyebilirsin:
+
+```sql
+ALTER TABLE halkgunu_events
+  ADD COLUMN default_sort TEXT DEFAULT 'oneri'
+  CHECK (default_sort IN ('oneri','indirim','fiyat_artan','fiyat_azalan','stok'));
+```
+
+Bu eklenirse:
+- Admin event düzenleme formunda dropdown ile seçer
+- Frontend `listActiveEvents` ile birlikte alır, ListView default sort'u
+  buradan ister (bugün hardcoded `"oneri"`, kolaylıkla event prop'undan
+  alınabilir)
+
+İhtiyaç netleşmediği için **şimdilik eklenmedi**; kullanıcı isterse bu
+SQL'i çalıştırır + frontend'de küçük bir prop pass-through yaparız.
+
+---
+
 ## 7.5 Bilinen sorun — Excel re-upload dedup'ı
 
 Kullanıcı belirtti: bir afişte 15 ürün birlikte yer alıyor, sonra **aynı 15 ürün tek-tek** ayrı afiş sayfalarında da gösteriliyor. Aynı Excel'i ikinci kez yüklediğinde admin "bu ürün event'te zaten var" diye yeni mapping kaydını yok sayıyormuş.
