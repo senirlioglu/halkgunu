@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuEventPhoto } from "@/lib/types";
 
@@ -52,26 +53,31 @@ export default function Lightbox({ photos, startIndex, onClose }: Props) {
   };
 
   if (!photo) return null;
+  // SSR'de document yok; ssr:false zaten dynamic import'ta var ama yine de
+  // güvenli kontrol.
+  if (typeof document === "undefined") return null;
   const href = mapsHref(photo);
 
-  return (
+  const overlay = (
     <div role="dialog" aria-modal="true" aria-label="Fotoğraf görüntüleyici"
-      className="fixed inset-0 z-[60] bg-black/92 flex flex-col animate-fadeIn"
+      className="fixed inset-0 z-[1000] bg-black/95 flex flex-col animate-fadeIn"
       onClick={onClose}>
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3"
-        onClick={(e) => e.stopPropagation()}>
-        <span className="font-display text-sm font-bold text-white/90 px-3 py-1 rounded-full bg-white/10 backdrop-blur">
-          {idx + 1} <span className="text-white/50">/ {total}</span>
+      <div
+        className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),16px)] pb-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="font-display text-sm font-bold text-white px-3 py-1.5 rounded-full bg-white/15 backdrop-blur">
+          {idx + 1} <span className="text-white/60">/ {total}</span>
         </span>
         <button
           onClick={onClose}
           aria-label="Kapat"
-          className="w-11 h-11 rounded-full bg-white/25 hover:bg-white/35 backdrop-blur
-                     grid place-items-center text-white text-2xl leading-none
-                     border border-white/40 shadow-[0_2px_8px_rgba(0,0,0,0.4)]
-                     active:scale-95 transition"
+          className="w-12 h-12 rounded-full bg-white text-ink-900
+                     grid place-items-center text-2xl font-bold leading-none
+                     shadow-[0_4px_14px_rgba(0,0,0,0.5)]
+                     hover:bg-paper-bg active:scale-95 transition"
         >
           ×
         </button>
@@ -146,4 +152,6 @@ export default function Lightbox({ photos, startIndex, onClose }: Props) {
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }
