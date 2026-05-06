@@ -227,6 +227,7 @@ export default function EventClient({ events, initialEventId }: Props) {
           maxNormal={activeProduct?.max_normal}
           minIndirimli={activeProduct?.min_indirimli}
           userPos={userPos}
+          onUserPos={setUserPos}
           onClose={() => setActiveProduct(null)}
         />
       )}

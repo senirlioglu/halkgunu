@@ -21,6 +21,7 @@ interface Props {
   maxNormal?: number | null;
   minIndirimli?: number | null;
   userPos?: { lat: number; lng: number } | null;
+  onUserPos?: (pos: { lat: number; lng: number }) => void;
   onClose: () => void;
 }
 
@@ -38,13 +39,31 @@ function distanceKm(a: {lat:number;lng:number}, b: {latitude:number|null;longitu
 }
 
 export function StoreModal({
-  eventId, urunKod, urunAd, maxNormal, minIndirimli, userPos, onClose,
+  eventId, urunKod, urunAd, maxNormal, minIndirimli, userPos, onUserPos, onClose,
 }: Props) {
   const [stores, setStores] = useState<HalkgunuProductStore[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>(userPos ? "yakinlik" : "fiyat");
   const [imgError, setImgError] = useState(false);
+  const [geoPending, setGeoPending] = useState(false);
+
+  const requestGeo = () => {
+    if (!("geolocation" in navigator)) return;
+    setGeoPending(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setGeoPending(false);
+        onUserPos?.({ lat: p.coords.latitude, lng: p.coords.longitude });
+        // userPos güncellenince useMemo yeniden çalışıp sıralayacak
+      },
+      () => {
+        setGeoPending(false);
+        setSort("fiyat"); // izin verilmedi → fiyata dön
+      },
+      { enableHighAccuracy: false, timeout: 8000 },
+    );
+  };
 
   useEffect(() => {
     if (!urunKod) return;
@@ -137,25 +156,43 @@ export function StoreModal({
         <div className="px-4 pt-2.5 pb-1">
           <div className="flex bg-paper-bg rounded-full p-0.5 gap-0.5">
             {([
-              ["yakinlik", "Yakınlık", !userPos],
-              ["fiyat", "Fiyat", false],
-              ["stok", "Stok", false],
-            ] as [SortKey, string, boolean][]).map(([k, l, dis]) => (
-              <button key={k} onClick={() => !dis && setSort(k)} disabled={dis}
+              ["yakinlik", "Yakınlık"],
+              ["fiyat", "Fiyat"],
+              ["stok", "Stok"],
+            ] as [SortKey, string][]).map(([k, l]) => (
+              <button
+                key={k}
+                onClick={() => {
+                  setSort(k);
+                  // Yakınlık seçildi ve henüz konum yok → izin iste
+                  if (k === "yakinlik" && !userPos && !geoPending) {
+                    requestGeo();
+                  }
+                }}
                 className={
                   "flex-1 px-2 py-1.5 rounded-full text-xs font-semibold transition " +
-                  (sort === k ? "bg-paper-surface text-ink-900 shadow-sm"
-                              : dis ? "text-ink-300 cursor-not-allowed"
-                                    : "text-ink-500")
+                  (sort === k
+                    ? "bg-paper-surface text-ink-900 shadow-sm"
+                    : "text-ink-500")
                 }
-                title={dis ? "Konum izni yok" : ""}>
+              >
                 {l}
               </button>
             ))}
           </div>
           <div className="text-[11px] text-ink-500 mt-1.5">
-            {!loading && stores.length > 0 && (
-              <>{stores.length} mağazada mevcut{userPos ? " · konumuna göre sıralı" : " · fiyata göre sıralı"}</>
+            {sort === "yakinlik" && geoPending && <>Konum alınıyor…</>}
+            {!loading && stores.length > 0 && !geoPending && (
+              <>
+                {stores.length} mağazada mevcut
+                {sort === "yakinlik" && userPos
+                  ? " · konumuna göre sıralı"
+                  : sort === "yakinlik" && !userPos
+                    ? " · konum yok, fiyata göre sıralı"
+                    : sort === "fiyat"
+                      ? " · fiyata göre sıralı"
+                      : ""}
+              </>
             )}
           </div>
         </div>
