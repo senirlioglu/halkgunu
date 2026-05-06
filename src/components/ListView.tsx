@@ -27,6 +27,7 @@ interface Props {
 }
 
 const SORT_LABEL: Record<FilterState["sort"], string> = {
+  oneri: "Önerilen sıralama",
   indirim: "En çok indirim",
   fiyat_artan: "En düşük fiyat",
   fiyat_azalan: "En yüksek fiyat",
@@ -123,6 +124,8 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
       });
     }
     const sorted = [...arr];
+    // "oneri" — API'den gelen sırayı koru (admin halkgunu_product_order
+    // ile manuel sıraladığında onun gelir, yoksa alfabetik fallback).
     if (filter.sort === "indirim") {
       sorted.sort((a, b) => {
         const da =
