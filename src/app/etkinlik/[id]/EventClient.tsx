@@ -18,6 +18,7 @@ import { PosterView } from "@/components/PosterView";
 import { StoresView } from "@/components/StoresView";
 import { StoreModal } from "@/components/StoreModal";
 import { formatEventDate } from "@/lib/format";
+import { track } from "@/lib/analytics";
 
 interface Props {
   events: HalkgunuEvent[];
@@ -33,6 +34,7 @@ export default function EventClient({ events, initialEventId }: Props) {
   const setMode = (m: ViewMode) => {
     userPickedMode.current = true;
     setModeState(m);
+    track("mode_change", { mode: m, event_id: activeEventId });
   };
   const [hasPoster, setHasPoster] = useState(false);
   const [hasPhotos, setHasPhotos] = useState(false);
@@ -129,6 +131,7 @@ export default function EventClient({ events, initialEventId }: Props) {
           events={events}
           activeEventId={activeEventId}
           onSelectEvent={(id) => {
+            track("event_change", { event_id: id });
             setActiveEventId(id);
             setMode("liste");
           }}

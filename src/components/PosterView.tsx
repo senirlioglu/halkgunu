@@ -5,6 +5,7 @@ import { listEventMappings, listEventPages } from "@/lib/api";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuMapping, HalkgunuPage } from "@/lib/types";
 import type { ClickedProduct } from "./StoreModal";
+import { track as analyticsTrack } from "@/lib/analytics";
 
 interface Props {
   eventId: string;
@@ -126,6 +127,11 @@ export function PosterView({ eventId, onProductClick }: Props) {
         track.style.transform = `translateX(${-direction * wrapW}px)`;
         setActiveIdx(target);
         setImgReady(false);
+        analyticsTrack("poster_page", {
+          event_id: eventId,
+          page_no: pages[target]?.page_no ?? target + 1,
+          method: fromDirection != null ? "swipe_or_arrow" : "thumb",
+        });
 
         // Faz 3: yeni sayfa içeri (iki rAF ile reflow garantisi).
         requestAnimationFrame(() => {
@@ -328,6 +334,12 @@ export function PosterView({ eventId, onProductClick }: Props) {
                   if (!m.urun_kodu) return;
                   // Drag sonrası gelen sentetik click'i bastır.
                   if (touch.current.isDragging) return;
+                  analyticsTrack("product_click", {
+                    urun_kod: m.urun_kodu,
+                    event_id: eventId,
+                    source: "afis",
+                    page_no: activePage.page_no,
+                  });
                   onProductClick({
                     urun_kod: m.urun_kodu,
                     urun_ad: m.urun_aciklamasi,

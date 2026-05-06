@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { listEventPhotos } from "@/lib/api";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuEventPhoto } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 const Lightbox = dynamic(
   () => import("@/components/Lightbox").then((m) => m.default),
@@ -64,7 +65,10 @@ export function PhotosView({ eventId }: Props) {
           <button
             key={p.id}
             type="button"
-            onClick={() => setLightboxIdx(i)}
+            onClick={() => {
+              track("lightbox_open", { event_id: eventId, photo_id: p.id });
+              setLightboxIdx(i);
+            }}
             className="bg-paper-surface rounded-card overflow-hidden border border-paper-border
                        shadow-card flex flex-col text-left active:translate-y-px transition"
           >

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { listEventStoreCatalog, type EventStoreCatalogStore } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 type SortKey = "ad" | "yakinlik";
 
@@ -71,6 +72,7 @@ export function StoresView({ eventId, userPos, onUserPos }: Props) {
         setGeoPending(false);
         const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
         onUserPos?.(pos);
+        track("geo_request", { source: "magazalar", granted: true });
       },
       (err) => {
         setGeoPending(false);
@@ -80,6 +82,7 @@ export function StoresView({ eventId, userPos, onUserPos }: Props) {
             : "Konum alınamadı.",
         );
         setSort("ad");
+        track("geo_request", { source: "magazalar", granted: false });
       },
       { enableHighAccuracy: false, timeout: 8000 },
     );
@@ -223,6 +226,11 @@ export function StoresView({ eventId, userPos, onUserPos }: Props) {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => track("directions_click", {
+                    source: "magazalar",
+                    magaza_kod: s.magaza_kod,
+                    event_id: eventId,
+                  })}
                   className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-brand hover:text-brand-dark"
                 >
                   📍 Yol tarifi →
