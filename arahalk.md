@@ -1,8 +1,10 @@
 # Ara — Halk Günü Admin Devir Notu
 
-**Hedef:** Ara'nın "Halk Günü" admin sekmesini gözden geçir, mevcut yönetim arayüzlerini doğrula, eksik olan **"Bizden Fotoğraflar" yönetim ekranını** ekle.
+**Hedef:** Ara'nın "Halk Günü" admin sekmesinde iki eksik parçayı tamamla:
+1. **"Bizden Fotoğraflar"** yönetim ekranı (foto upload + listele + sil)
+2. **Ürün sıralaması (manuel reorder)** — drag-drop ile event başına ürün sırasını belirleme + kaydet
 
-Bu doküman halkgunu (frontend) tarafının bittiği noktayı ve admin'den beklediklerini özetler. İlk iş: aşağıdaki "Sıfırıncı Adım"ı yap, mevcut durumu yerinde gör, sonra eksik parçayı ekle.
+Bu doküman halkgunu (frontend) tarafının bittiği noktayı ve admin'den beklediklerini özetler. İlk iş: aşağıdaki "Sıfırıncı Adım"ı yap, mevcut durumu yerinde gör, sonra eksik parçaları ekle.
 
 ---
 
@@ -13,9 +15,10 @@ Ara repo'sunda Halk Günü admin sekmesinin bulunduğu Streamlit modülünü aç
 1. **Etkinlik (event) yönetimi** — `halkgunu_events` için CRUD: oluştur/listele/aktif et/arşivle, sort_order düzenle.
 2. **Ürün yönetimi** — Excel import → `halkgunu_products` (event_id, urun_kod, urun_ad, magaza_kod, normal_fiyat, indirimli_fiyat).
 3. **Afiş (poster) yönetimi** — `halkgunu_pages` upload (PDF/JPG → bucket: `poster-images`, path: `halkgunu/{event_id}/{filename}_p{n}.jpg`) + `halkgunu_mappings` bbox eşleştirme.
-4. **Fotoğraf yönetimi (`halkgunu_photos`)** — **YOK**, eklenecek olan bu.
+4. **Fotoğraf yönetimi (`halkgunu_photos`)** — **YOK**, eklenecek olan.
+5. **Ürün sıralama yönetimi (`halkgunu_product_order`)** — **YOK**, eklenecek olan.
 
-Kullanıcının iddiası: 1, 2, 3 yapıldı; sadece 4 eksik. Doğrula. Eksik bulduğun farklı şeyler varsa kullanıcıya bildir, ama bu oturumun ana işi madde 4.
+Kullanıcının iddiası: 1, 2, 3 yapıldı; 4 ve 5 eksik. Doğrula. Eksik bulduğun farklı şeyler varsa kullanıcıya bildir, bu oturumun ana işi madde **4 ve 5**.
 
 ---
 
@@ -158,7 +161,95 @@ Canlı için gerçek event'ler henüz yok; ürün/Afiş eksenli yönetim akış�
 
 ---
 
-## 7. Bittiğinde
+## 7. İkinci yapılacak iş — Ürün sıralama (manuel reorder)
+
+### Tablo & RLS — **Supabase'e zaten uygulandı**
+
+Frontend referansı için:
+
+```sql
+CREATE TABLE halkgunu_product_order (
+    event_id     TEXT NOT NULL REFERENCES halkgunu_events(event_id) ON DELETE CASCADE,
+    urun_kod     TEXT NOT NULL,
+    display_sort INTEGER NOT NULL DEFAULT 0,
+    updated_at   TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (event_id, urun_kod)
+);
+-- RLS: anon SELECT (status='active' event), service_role bypass.
+```
+
+### Frontend kontratı
+
+Halkgunu.net `listEventProductSummary` artık `halkgunu_product_order`'ı LEFT JOIN okuyor:
+- `display_sort > 0` olan ürünler **artan sıraya göre en üstte** (1, 2, 3, ...)
+- `display_sort = 0` ya da satırı yok olanlar **alfabetik sıraya göre** sonra
+
+Yani admin ilk 10 ürünü 1..10 olarak sıraladığında, frontend onları o sırayla en üstte gösterir; geri kalan 80 ürün alfabetik kalır.
+
+### Admin sekmesi — yapılacak
+
+Halk Günü admin sekmesine **"Ürün Sırası"** alt sekmesi ekle. UX:
+
+1. **Etkinlik seçici** (mevcut event picker'dan miras)
+2. **Ürün listesi (drag handle ile)**
+   - Mevcut event için `halkgunu_products`'tan distinct `urun_kod, urun_ad` çek
+   - Mevcut `halkgunu_product_order` ile birleştir → ilk olarak sıralı olanlar (display_sort artan), sonra alfabetik
+   - Her satır: drag handle ikonu + ürün resmi (küçük) + urun_kod + urun_ad + display_sort numarası (input ya da otomatik)
+3. **Drag-drop reorder**
+   - Streamlit'te native drag-drop yok. İki seçenek:
+     - **A.** `streamlit-sortables` veya `streamlit-elements` paketi (PyPI'da mevcut, Ara'nın requirements.txt'sine ekleyebilirsin)
+     - **B.** Manuel: her satırda ↑↓ butonlar (basit, kütüphane gerektirmez)
+   - Önerim **B** (kütüphane çatışması ve maintenance riski yok). Drag UX'inden gerçek getiri yok 50 üründe; ↑↓ yeterli.
+4. **"Sıralamayı kaydet"** butonu
+   - Tek bir UPSERT batch:
+     ```python
+     rows = [
+       {"event_id": eid, "urun_kod": k, "display_sort": i + 1}
+       for i, k in enumerate(reordered_kods)
+       if i < limit  # sadece elle sıralananlar (örn. ilk 30) sıralı kaydedilir
+     ]
+     # geri kalanlara display_sort = 0 yaz (varsayılan alfabetik sıraya bırak)
+     supabase.table("halkgunu_product_order").upsert(rows, on_conflict="event_id,urun_kod").execute()
+     ```
+5. **"Sıralamayı temizle"** butonu — opsiyonel
+   - Bu event için tüm `halkgunu_product_order` satırlarını sil:
+     ```python
+     supabase.table("halkgunu_product_order").delete().eq("event_id", eid).execute()
+     ```
+
+### Kabul kriterleri (sıralama)
+
+- [ ] Admin → Halk Günü → "Ürün Sırası" alt sekmesi açılıyor
+- [ ] Aktif etkinlik için ürün listesi geliyor, sırada olanlar üstte
+- [ ] ↑↓ ile (veya drag ile) sıra değişiyor, "Kaydet" → DB'ye yazıyor
+- [ ] Halkgunu.net refresh → liste modunda sırayı görüyorsun: önce sıralı ürünler, sonra alfabetik
+- [ ] "Temizle" → tüm sıralama silinir, frontend alfabetik döner
+
+---
+
+## 7.5 Bilinen sorun — Excel re-upload dedup'ı
+
+Kullanıcı belirtti: bir afişte 15 ürün birlikte yer alıyor, sonra **aynı 15 ürün tek-tek** ayrı afiş sayfalarında da gösteriliyor. Aynı Excel'i ikinci kez yüklediğinde admin "bu ürün event'te zaten var" diye yeni mapping kaydını yok sayıyormuş.
+
+**Frontend kontratı bu konuda nettir:**
+
+| Tablo | Aynı `urun_kod` için duplicate satır olabilir mi? |
+|---|---|
+| `halkgunu_products` | **Hayır** — `UNIQUE (event_id, urun_kod, magaza_kod)`. Excel re-upload `ON CONFLICT DO UPDATE` ile güncellenmeli (fiyat). |
+| `halkgunu_mappings` | **Evet** — aynı ürün farklı `(flyer_filename, page_no, bbox)` üzerinde birden fazla satıra sahip olabilir, **olmalı**. Dedup yapılmamalı. |
+
+`halkgunu_mappings` Excel ile değil, afiş upload sırasında OCR/manual mapping akışıyla doluyor. Excel re-upload sırasında mappings'e dokunulmamalı.
+
+**Yapılacak:** Ara'nın Excel import handler'ında dedup mantığı:
+- `halkgunu_products`'a yazarken `(event_id, urun_kod, magaza_kod)` UPSERT — ✓ doğru olan bu
+- `halkgunu_mappings`'e Excel'den **hiç dokunma** — onun kendi flow'u var
+- Eğer admin "bu ürün event'te zaten var, atla" diyorsa, bu sadece products satırı için olmalı, mapping eklemeyi engellememeli
+
+Kullanıcıyla doğrula: dedup tam olarak neyi engelliyor? Bu satır mı, mapping mi, yoksa yeni Excel satırlarındaki fiyat güncellemesi mi atlanıyor?
+
+---
+
+## 8. Bittiğinde
 
 Ara'nın `claude/halkgunu` (veya hangi branch'tey­sen) üzerine commit + push. Halkgunu repo'suna dokunma (frontend tamam). PR açacaksan kullanıcıya sor.
 
