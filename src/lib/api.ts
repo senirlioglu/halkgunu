@@ -45,18 +45,30 @@ export async function listEventMappings(
 }
 
 // Distinct ürün özeti — admin _admin_halkgunu_list_mode ile aynı agregasyonu yapar.
-// (RPC tanımlamadık çünkü PostgREST üzerinden çekip JS'de gruplamak yeterli.)
+// halkgunu_product_order varsa display_sort önceliğine, yoksa urun_kod'a göre sıralar.
 export async function listEventProductSummary(
   eventId: string,
 ): Promise<HalkgunuProductSummary[]> {
-  const { data, error } = await supabase
-    .from("halkgunu_products")
-    .select("urun_kod, urun_ad, normal_fiyat, indirimli_fiyat")
-    .eq("event_id", eventId);
-  if (error) throw error;
+  const [productsResult, orderResult] = await Promise.all([
+    supabase
+      .from("halkgunu_products")
+      .select("urun_kod, urun_ad, normal_fiyat, indirimli_fiyat")
+      .eq("event_id", eventId),
+    supabase
+      .from("halkgunu_product_order")
+      .select("urun_kod, display_sort")
+      .eq("event_id", eventId),
+  ]);
+  if (productsResult.error) throw productsResult.error;
+  // Sıralama tablosu hata verirse (yok varsayalım) sessizce devam et.
+  const orderRows = orderResult.error ? [] : (orderResult.data ?? []);
+  const orderMap = new Map<string, number>();
+  for (const r of orderRows) {
+    if (r.urun_kod) orderMap.set(r.urun_kod, (r.display_sort as number) ?? 0);
+  }
 
   const byKod = new Map<string, HalkgunuProductSummary>();
-  for (const row of data ?? []) {
+  for (const row of productsResult.data ?? []) {
     const kod = row.urun_kod;
     if (!kod) continue;
     const ind = row.indirimli_fiyat as number | null;
@@ -79,9 +91,18 @@ export async function listEventProductSummary(
       if (!cur.urun_ad && row.urun_ad) cur.urun_ad = row.urun_ad;
     }
   }
-  return Array.from(byKod.values()).sort((a, b) =>
-    a.urun_kod.localeCompare(b.urun_kod, "tr"),
-  );
+  // display_sort > 0 olanlar önce (artan), sonra alfabetik kalanlar.
+  return Array.from(byKod.values()).sort((a, b) => {
+    const sa = orderMap.get(a.urun_kod) ?? 0;
+    const sb = orderMap.get(b.urun_kod) ?? 0;
+    if (sa !== sb) {
+      // 0 (sıralanmamış) en sona, sıralı olanlar artan.
+      if (sa === 0) return 1;
+      if (sb === 0) return -1;
+      return sa - sb;
+    }
+    return a.urun_kod.localeCompare(b.urun_kod, "tr");
+  });
 }
 
 export interface EventStoreCatalog {
