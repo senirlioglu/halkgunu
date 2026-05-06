@@ -80,41 +80,71 @@ export function PosterView({ eventId, onProductClick }: Props) {
   // Dikey hareket → sayfa scroll'una izin ver (touchAction: pan-y)
   // Direction-lock 4px eşikle; sonra preventDefault + drag.
   // ─────────────────────────────────────────────────────
+  // Sayfa kaydırma animasyonu — Ara'daki 3 fazlı slide:
+  //   1. Mevcut sayfayı dışarı kaydır (transform: ±wrapW)
+  //   2. Karşı tarafa anında ışınla (-wrapW veya +wrapW), aktif sayfayı değiştir
+  //   3. Yeni sayfayı içeri kaydır (transform: 0)
+  // target === activeIdx → tek fazlı snap-back (parmak bırakıldı, eşik aşılmadı).
+  const SLIDE_MS = 300;
   const slideTo = useCallback(
     (target: number, fromDirection: 1 | -1 | null) => {
       const track = trackRef.current;
       const wrap = wrapRef.current;
       if (!track || !wrap) return;
+
+      // Snap-back (aynı sayfa veya geçersiz hedef)
       if (target < 0 || target >= pages.length || target === activeIdx) {
-        track.style.transition = "transform 280ms cubic-bezier(0.2,0.8,0.2,1)";
+        track.style.transition = `transform ${SLIDE_MS}ms cubic-bezier(0.2,0.8,0.2,1)`;
         track.style.transform = "translateX(0)";
-        const onEnd = () => {
+        const onSnapEnd = (ev: TransitionEvent) => {
+          if (ev.target !== track || ev.propertyName !== "transform") return;
+          track.removeEventListener("transitionend", onSnapEnd);
           track.style.transition = "";
           track.style.transform = "";
-          track.removeEventListener("transitionend", onEnd);
           touch.current.isSliding = false;
         };
-        track.addEventListener("transitionend", onEnd);
+        track.addEventListener("transitionend", onSnapEnd);
         return;
       }
+
       const wrapW = wrap.clientWidth;
       const direction =
-        fromDirection ?? (target > activeIdx ? -1 : 1); // -1: slide left
+        fromDirection ?? (target > activeIdx ? -1 : 1); // -1: sola kaydır
+
       touch.current.isSliding = true;
-      track.style.transition = "transform 220ms cubic-bezier(0.2,0.8,0.2,1)";
+
+      // Faz 1: mevcut sayfa dışarı.
+      track.style.transition = `transform ${SLIDE_MS}ms cubic-bezier(0.2,0.8,0.2,1)`;
       track.style.transform = `translateX(${direction * wrapW}px)`;
 
-      const after = () => {
-        track.removeEventListener("transitionend", after);
-        // Görsel değişimi ve track'in sıfırlanması — flicker'ı önlemek için
-        // transition'sız yap, sonra rAF ile bir frame bekle.
+      const onPhase1 = (ev: TransitionEvent) => {
+        if (ev.target !== track || ev.propertyName !== "transform") return;
+        track.removeEventListener("transitionend", onPhase1);
+
+        // Faz 2: anında karşı tarafa ışınla, görseli değiştir.
         track.style.transition = "";
-        track.style.transform = "";
+        track.style.transform = `translateX(${-direction * wrapW}px)`;
         setActiveIdx(target);
         setImgReady(false);
-        touch.current.isSliding = false;
+
+        // Faz 3: yeni sayfa içeri (iki rAF ile reflow garantisi).
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            track.style.transition = `transform ${SLIDE_MS}ms cubic-bezier(0.2,0.8,0.2,1)`;
+            track.style.transform = "translateX(0)";
+
+            const onPhase3 = (ev2: TransitionEvent) => {
+              if (ev2.target !== track || ev2.propertyName !== "transform") return;
+              track.removeEventListener("transitionend", onPhase3);
+              track.style.transition = "";
+              track.style.transform = "";
+              touch.current.isSliding = false;
+            };
+            track.addEventListener("transitionend", onPhase3);
+          });
+        });
       };
-      track.addEventListener("transitionend", after);
+      track.addEventListener("transitionend", onPhase1);
     },
     [activeIdx, pages.length],
   );
