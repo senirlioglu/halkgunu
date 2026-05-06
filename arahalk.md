@@ -227,6 +227,28 @@ Halk Günü admin sekmesine **"Ürün Sırası"** alt sekmesi ekle. UX:
 
 ---
 
+## 7.5 Bilinen sorun — Excel re-upload dedup'ı
+
+Kullanıcı belirtti: bir afişte 15 ürün birlikte yer alıyor, sonra **aynı 15 ürün tek-tek** ayrı afiş sayfalarında da gösteriliyor. Aynı Excel'i ikinci kez yüklediğinde admin "bu ürün event'te zaten var" diye yeni mapping kaydını yok sayıyormuş.
+
+**Frontend kontratı bu konuda nettir:**
+
+| Tablo | Aynı `urun_kod` için duplicate satır olabilir mi? |
+|---|---|
+| `halkgunu_products` | **Hayır** — `UNIQUE (event_id, urun_kod, magaza_kod)`. Excel re-upload `ON CONFLICT DO UPDATE` ile güncellenmeli (fiyat). |
+| `halkgunu_mappings` | **Evet** — aynı ürün farklı `(flyer_filename, page_no, bbox)` üzerinde birden fazla satıra sahip olabilir, **olmalı**. Dedup yapılmamalı. |
+
+`halkgunu_mappings` Excel ile değil, afiş upload sırasında OCR/manual mapping akışıyla doluyor. Excel re-upload sırasında mappings'e dokunulmamalı.
+
+**Yapılacak:** Ara'nın Excel import handler'ında dedup mantığı:
+- `halkgunu_products`'a yazarken `(event_id, urun_kod, magaza_kod)` UPSERT — ✓ doğru olan bu
+- `halkgunu_mappings`'e Excel'den **hiç dokunma** — onun kendi flow'u var
+- Eğer admin "bu ürün event'te zaten var, atla" diyorsa, bu sadece products satırı için olmalı, mapping eklemeyi engellememeli
+
+Kullanıcıyla doğrula: dedup tam olarak neyi engelliyor? Bu satır mı, mapping mi, yoksa yeni Excel satırlarındaki fiyat güncellemesi mi atlanıyor?
+
+---
+
 ## 8. Bittiğinde
 
 Ara'nın `claude/halkgunu` (veya hangi branch'tey­sen) üzerine commit + push. Halkgunu repo'suna dokunma (frontend tamam). PR açacaksan kullanıcıya sor.
