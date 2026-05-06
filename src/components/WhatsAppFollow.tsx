@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 /**
  * WhatsApp kanal/topluluk takip butonu.
  *
@@ -23,6 +25,7 @@ export function WhatsAppFollow({ compact = false }: Props) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => track("whatsapp_click", { source: "header" })}
         aria-label="WhatsApp'tan takip et"
         title="WhatsApp'tan takip et"
         className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full
@@ -42,6 +45,7 @@ export function WhatsAppFollow({ compact = false }: Props) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => track("whatsapp_click", { source: compact ? "header" : "banner" })}
       className="mx-4 my-4 flex items-center gap-3 bg-[#25D366]/10 border border-[#25D366]/30
                  rounded-card px-3.5 py-3 hover:bg-[#25D366]/15 transition"
     >

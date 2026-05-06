@@ -16,6 +16,7 @@ import {
   type FilterState,
 } from "./FilterSheet";
 import { categoryOf } from "@/lib/categories";
+import { track } from "@/lib/analytics";
 
 interface Props {
   eventId: string;
@@ -57,6 +58,13 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
   );
 
   const setFilter = (next: FilterState) => {
+    track("filter_change", {
+      event_id: eventId,
+      sort: next.sort,
+      categories: next.categories.length,
+      stores: next.stores.length,
+      min_discount: next.minDiscount,
+    });
     const sp = filterToQuery(next);
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -248,7 +256,18 @@ export function ListView({ eventId, onProductClick, onGeoPermission }: Props) {
 
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {filtered.map((p) => (
-          <ProductCard key={p.urun_kod} product={p} onClick={onProductClick} />
+          <ProductCard
+            key={p.urun_kod}
+            product={p}
+            onClick={(prod) => {
+              track("product_click", {
+                urun_kod: prod.urun_kod,
+                event_id: eventId,
+                source: "liste",
+              });
+              onProductClick(prod);
+            }}
+          />
         ))}
       </div>
 

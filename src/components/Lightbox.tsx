@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { posterImageUrl } from "@/lib/supabase";
 import type { HalkgunuEventPhoto } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 interface Props {
   photos: HalkgunuEventPhoto[];
@@ -144,6 +145,11 @@ export default function Lightbox({ photos, startIndex, onClose }: Props) {
         </div>
         {href && (
           <a href={href} target="_blank" rel="noopener noreferrer"
+            onClick={() => track("directions_click", {
+              source: "fotograflar",
+              magaza_kod: photo.magaza_kod ?? undefined,
+              photo_id: photo.id,
+            })}
             className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full
                        bg-success text-white text-[11px] font-bold active:bg-success/90">
             📍 Haritada göster

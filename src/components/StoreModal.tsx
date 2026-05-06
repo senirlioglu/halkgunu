@@ -6,6 +6,7 @@ import { getProductStores } from "@/lib/api";
 import { productImageUrl } from "@/lib/supabase";
 import { formatPrice, discountPercent } from "@/lib/format";
 import type { HalkgunuProductStore } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 export interface ClickedProduct {
   urun_kod: string;
@@ -55,11 +56,12 @@ export function StoreModal({
       (p) => {
         setGeoPending(false);
         onUserPos?.({ lat: p.coords.latitude, lng: p.coords.longitude });
-        // userPos güncellenince useMemo yeniden çalışıp sıralayacak
+        track("geo_request", { source: "modal", granted: true });
       },
       () => {
         setGeoPending(false);
         setSort("fiyat"); // izin verilmedi → fiyata dön
+        track("geo_request", { source: "modal", granted: false });
       },
       { enableHighAccuracy: false, timeout: 8000 },
     );
@@ -231,6 +233,12 @@ export function StoreModal({
                   </div>
                   {mapsHref && (
                     <a href={mapsHref} target="_blank" rel="noopener noreferrer"
+                       onClick={() => track("directions_click", {
+                         source: "modal",
+                         magaza_kod: s.magaza_kod,
+                         event_id: eventId,
+                         urun_kod: urunKod ?? undefined,
+                       })}
                        className="inline-block mt-1.5 text-[11px] font-semibold text-brand">
                       📍 Yol tarifi →
                     </a>

@@ -1,8 +1,11 @@
 // halkgunu-web/src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
+import Script from "next/script";
 import { PwaInit } from "@/components/PwaInit";
 import "./globals.css";
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -62,6 +65,21 @@ export default function RootLayout({
       <body>
         {children}
         <PwaInit />
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
+gtag('js', new Date());
+gtag('config', '${GA_ID}', { send_page_view: true });`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
