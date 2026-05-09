@@ -74,10 +74,12 @@ export function PhotosView({ eventId }: Props) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={posterImageUrl(p.image_path)}
+              src={posterImageUrl(p.image_path, { width: 480, quality: 65 })}
               alt={p.caption ?? p.magaza_adi ?? "Halk Günü"}
               className="w-full aspect-[4/3] object-cover bg-paper-bg"
-              loading="lazy"
+              loading={i < 4 ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={i < 2 ? "high" : "auto"}
             />
             <div className="p-2.5 flex flex-col gap-0.5">
               {p.magaza_adi && (
