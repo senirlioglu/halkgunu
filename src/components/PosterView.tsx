@@ -45,6 +45,14 @@ export function PosterView({ eventId, onProductClick }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const touch = useRef<TouchState>({ ...initialTouch });
+  // Önyüklenen / yüklenmiş ana sayfa src'lerini takip et — swipe sırasında
+  // hedef görsel zaten cache'deyse skeleton flash'ını atlayabilelim.
+  const loadedSrcs = useRef<Set<string>>(new Set());
+
+  const mainSrc = useCallback(
+    (path: string) => posterImageUrl(path, { width: 1200, quality: 85 }),
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -126,7 +134,10 @@ export function PosterView({ eventId, onProductClick }: Props) {
         track.style.transition = "";
         track.style.transform = `translateX(${-direction * wrapW}px)`;
         setActiveIdx(target);
-        setImgReady(false);
+        // Hedef görsel önbellekteyse skeleton'ı hiç gösterme — swipe boyunca
+        // yeni afiş kaymaya başladığı andan itibaren görünür olsun.
+        const targetSrc = mainSrc(pages[target].image_path);
+        setImgReady(loadedSrcs.current.has(targetSrc));
         analyticsTrack("poster_page", {
           event_id: eventId,
           page_no: pages[target]?.page_no ?? target + 1,
@@ -152,8 +163,22 @@ export function PosterView({ eventId, onProductClick }: Props) {
       };
       track.addEventListener("transitionend", onPhase1);
     },
-    [activeIdx, pages.length],
+    [activeIdx, pages, mainSrc],
   );
+
+  // Komşu (önceki/sonraki) afiş sayfalarını arka planda önyükle. Swipe
+  // bitince hedef görsel HTTP cache'inde olur ve skeleton flash'ı kalmaz.
+  useEffect(() => {
+    if (pages.length <= 1) return;
+    [activeIdx - 1, activeIdx + 1].forEach((i) => {
+      if (i < 0 || i >= pages.length) return;
+      const src = mainSrc(pages[i].image_path);
+      if (loadedSrcs.current.has(src)) return;
+      const im = new Image();
+      im.onload = () => loadedSrcs.current.add(src);
+      im.src = src;
+    });
+  }, [activeIdx, pages, mainSrc]);
 
   const onTouchEnd = useCallback(() => {
     const s = touch.current;
@@ -307,10 +332,7 @@ export function PosterView({ eventId, onProductClick }: Props) {
             )}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={posterImageUrl(activePage.image_path, {
-                width: 1200,
-                quality: 85,
-              })}
+              src={mainSrc(activePage.image_path)}
               alt={activePage.title || ""}
               className={
                 "w-full h-auto block transition-opacity duration-200 select-none " +
@@ -319,7 +341,10 @@ export function PosterView({ eventId, onProductClick }: Props) {
               fetchPriority="high"
               decoding="async"
               draggable={false}
-              onLoad={() => setImgReady(true)}
+              onLoad={() => {
+                loadedSrcs.current.add(mainSrc(activePage.image_path));
+                setImgReady(true);
+              }}
             />
 
             {imgReady &&
