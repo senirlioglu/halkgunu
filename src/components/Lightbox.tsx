@@ -31,6 +31,16 @@ export default function Lightbox({ photos, startIndex, onClose }: Props) {
   const next = useCallback(() => setIdx(i => (i + 1) % total), [total]);
   const prev = useCallback(() => setIdx(i => (i - 1 + total) % total), [total]);
 
+  // Komşu fotoğrafları arka planda önyükle — swipe sırasında flicker olmasın.
+  useEffect(() => {
+    if (total <= 1) return;
+    const neighbors = [(idx + 1) % total, (idx - 1 + total) % total];
+    neighbors.forEach((i) => {
+      const im = new Image();
+      im.src = posterImageUrl(photos[i].image_path, { width: 1600, quality: 82 });
+    });
+  }, [idx, photos, total]);
+
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -93,11 +103,13 @@ export default function Lightbox({ photos, startIndex, onClose }: Props) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={photo.id}
-          src={posterImageUrl(photo.image_path)}
+          src={posterImageUrl(photo.image_path, { width: 1600, quality: 82 })}
           alt={photo.caption ?? photo.magaza_adi ?? "Halk Günü fotoğrafı"}
           className="max-w-[92%] max-h-[72vh] object-contain rounded-[16px] shadow-2xl
                      animate-fadeIn select-none"
           draggable={false}
+          decoding="async"
+          fetchPriority="high"
         />
 
         {/* Prev/Next — only on ≥sm */}
