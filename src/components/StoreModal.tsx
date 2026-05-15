@@ -26,8 +26,6 @@ interface Props {
   onClose: () => void;
 }
 
-type SortKey = "yakinlik" | "fiyat" | "stok";
-
 function distanceKm(a: {lat:number;lng:number}, b: {latitude:number|null;longitude:number|null}) {
   if (b.latitude == null || b.longitude == null) return Infinity;
   const R = 6371;
@@ -45,7 +43,6 @@ export function StoreModal({
   const [stores, setStores] = useState<HalkgunuProductStore[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sort, setSort] = useState<SortKey>(userPos ? "yakinlik" : "fiyat");
   const [imgError, setImgError] = useState(false);
   const [geoPending, setGeoPending] = useState(false);
 
@@ -60,7 +57,6 @@ export function StoreModal({
       },
       () => {
         setGeoPending(false);
-        setSort("fiyat"); // izin verilmedi → fiyata dön
         track("geo_request", { source: "modal", granted: false });
       },
       { enableHighAccuracy: false, timeout: 8000 },
@@ -80,15 +76,11 @@ export function StoreModal({
 
   const sorted = useMemo(() => {
     const arr = [...stores];
-    if (sort === "yakinlik" && userPos) {
+    if (userPos) {
       arr.sort((a, b) => distanceKm(userPos, a) - distanceKm(userPos, b));
-    } else if (sort === "fiyat") {
-      arr.sort((a, b) => (a.indirimli_fiyat ?? Infinity) - (b.indirimli_fiyat ?? Infinity));
-    } else if (sort === "stok") {
-      arr.sort((a, b) => b.stok_adet - a.stok_adet);
     }
     return arr;
-  }, [stores, sort, userPos]);
+  }, [stores, userPos]);
 
   // ESC handler + scroll lock
   useEffect(() => {
@@ -154,49 +146,27 @@ export function StoreModal({
             className="text-ink-500 text-2xl leading-none px-1">×</button>
         </div>
 
-        {/* Sort segmented */}
-        <div className="px-4 pt-2.5 pb-1">
-          <div className="flex bg-paper-bg rounded-full p-0.5 gap-0.5">
-            {([
-              ["yakinlik", "Yakınlık"],
-              ["fiyat", "Fiyat"],
-              ["stok", "Stok"],
-            ] as [SortKey, string][]).map(([k, l]) => (
-              <button
-                key={k}
-                onClick={() => {
-                  setSort(k);
-                  // Yakınlık seçildi ve henüz konum yok → izin iste
-                  if (k === "yakinlik" && !userPos && !geoPending) {
-                    requestGeo();
-                  }
-                }}
-                className={
-                  "flex-1 px-2 py-1.5 rounded-full text-xs font-semibold transition " +
-                  (sort === k
-                    ? "bg-paper-surface text-ink-900 shadow-sm"
-                    : "text-ink-500")
-                }
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-          <div className="text-[11px] text-ink-500 mt-1.5">
-            {sort === "yakinlik" && geoPending && <>Konum alınıyor…</>}
-            {!loading && stores.length > 0 && !geoPending && (
+        {/* Status / geo action */}
+        <div className="px-4 pt-2.5 pb-1 flex items-center justify-between gap-2">
+          <div className="text-[11px] text-ink-500">
+            {geoPending ? (
+              <>Konum alınıyor…</>
+            ) : !loading && stores.length > 0 ? (
               <>
                 {stores.length} mağazada mevcut
-                {sort === "yakinlik" && userPos
-                  ? " · konumuna göre sıralı"
-                  : sort === "yakinlik" && !userPos
-                    ? " · konum yok, fiyata göre sıralı"
-                    : sort === "fiyat"
-                      ? " · fiyata göre sıralı"
-                      : ""}
+                {userPos ? " · konumuna göre sıralı" : ""}
               </>
-            )}
+            ) : null}
           </div>
+          {!userPos && !geoPending && (
+            <button
+              onClick={requestGeo}
+              className="text-[11px] font-semibold text-brand px-2 py-1 rounded-full
+                         bg-brand-soft hover:opacity-80 transition shrink-0"
+            >
+              📍 Konumumu kullan
+            </button>
+          )}
         </div>
 
         {/* List */}
@@ -229,7 +199,7 @@ export function StoreModal({
                   </div>
                   {s.adres && <div className="text-[10px] text-ink-500 mt-0.5 line-clamp-2">{s.adres}</div>}
                   <div className="text-[10px] text-ink-500 mt-1 font-mono">
-                    {s.magaza_kod} · stok {s.stok_adet}
+                    {s.magaza_kod}
                   </div>
                   {mapsHref && (
                     <a href={mapsHref} target="_blank" rel="noopener noreferrer"
