@@ -229,7 +229,7 @@ export function StoreModal({
                   </div>
                   {s.adres && <div className="text-[10px] text-ink-500 mt-0.5 line-clamp-2">{s.adres}</div>}
                   <div className="text-[10px] text-ink-500 mt-1 font-mono">
-                    {s.magaza_kod} · stok {s.stok_adet}
+                    {s.magaza_kod}
                   </div>
                   {mapsHref && (
                     <a href={mapsHref} target="_blank" rel="noopener noreferrer"
