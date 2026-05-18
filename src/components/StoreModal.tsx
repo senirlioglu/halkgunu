@@ -104,13 +104,20 @@ export function StoreModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-paper-surface w-full max-w-2xl max-h-[85vh] flex flex-col
+        className="relative bg-paper-surface w-full max-w-2xl max-h-[85dvh] flex flex-col
                    rounded-t-sheet shadow-sheet animate-slideUp"
       >
         <div className="pt-2 pb-1"><div className="sheet-handle" /></div>
 
+        {/* Floating close (always visible at top-right) */}
+        <button onClick={onClose} aria-label="Kapat"
+          className="absolute top-2 right-2 z-10 w-10 h-10 grid place-items-center rounded-full
+                     bg-paper-surface text-ink-900 text-2xl leading-none
+                     border border-paper-border shadow-md
+                     active:scale-95 transition">×</button>
+
         {/* Header */}
-        <div className="flex items-start gap-3 px-4 py-3 border-b border-paper-border">
+        <div className="flex items-start gap-3 px-4 py-3 pr-14 border-b border-paper-border">
           <div className="w-16 h-16 shrink-0 rounded-card overflow-hidden bg-kraft-stripe grid place-items-center">
             {imgError ? (
               <span className="text-2xl opacity-70">📦</span>
@@ -142,11 +149,6 @@ export function StoreModal({
               )}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Kapat"
-            className="shrink-0 -mt-1 -mr-1 w-10 h-10 grid place-items-center rounded-full
-                       bg-paper-bg text-ink-900 text-2xl leading-none
-                       border border-paper-border shadow-sm
-                       active:scale-95 transition">×</button>
         </div>
 
         {/* Status / geo action */}
@@ -229,6 +231,16 @@ export function StoreModal({
               </div>
             );
           })}
+        </div>
+
+        {/* Bottom close */}
+        <div className="px-4 pt-2 pb-[max(env(safe-area-inset-bottom),12px)]
+                        border-t border-paper-border bg-paper-surface">
+          <button onClick={onClose}
+            className="w-full py-3 rounded-full bg-brand text-white font-semibold text-sm
+                       active:scale-[0.98] transition shadow-sm">
+            Kapat
+          </button>
         </div>
       </div>
     </div>
