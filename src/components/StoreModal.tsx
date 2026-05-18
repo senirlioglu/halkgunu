@@ -143,7 +143,10 @@ export function StoreModal({
             </div>
           </div>
           <button onClick={onClose} aria-label="Kapat"
-            className="text-ink-500 text-2xl leading-none px-1">×</button>
+            className="shrink-0 -mt-1 -mr-1 w-10 h-10 grid place-items-center rounded-full
+                       bg-paper-bg text-ink-900 text-2xl leading-none
+                       border border-paper-border shadow-sm
+                       active:scale-95 transition">×</button>
         </div>
 
         {/* Status / geo action */}
