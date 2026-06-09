@@ -49,10 +49,10 @@ export function CampaignCountdownOverlay() {
       <div className="sticky top-4 mx-auto max-w-md w-full px-4 pt-6">
         <div className="bg-paper-surface border border-paper-border rounded-card
                         shadow-xl p-5 text-center">
-          <div className="text-[11px] font-bold text-brand uppercase tracking-wide">
+          <div className="font-display text-lg sm:text-xl font-extrabold text-brand uppercase tracking-wide leading-tight">
             Halk Günü Büyük İndirimleri
           </div>
-          <div className="text-xs text-ink-700 mt-1">için kalan süre</div>
+          <div className="text-xs text-ink-700 mt-1.5">için kalan süre</div>
 
           <div className="mt-4 flex items-start justify-center gap-2 sm:gap-3">
             <Cell value={pad(days)} label="Gün" />
@@ -67,8 +67,8 @@ export function CampaignCountdownOverlay() {
             <Cell value={pad(seconds)} label="Saniye" />
           </div>
 
-          <div className="text-[12px] font-bold text-ink-900 mt-4">
-            Kampanya her Cumartesi & Pazar
+          <div className="text-[13px] font-bold text-ink-900 mt-4 uppercase tracking-wide">
+            İndirimleri en erken sen öğren
           </div>
           {whatsappUrl && (
             <a
