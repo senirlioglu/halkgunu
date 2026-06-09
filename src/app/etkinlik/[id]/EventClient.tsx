@@ -17,6 +17,7 @@ import { PhotosView } from "@/components/PhotosView";
 import { PosterView } from "@/components/PosterView";
 import { StoresView } from "@/components/StoresView";
 import { StoreModal } from "@/components/StoreModal";
+import { CampaignCountdownOverlay } from "@/components/CampaignCountdownOverlay";
 import { formatEventDate } from "@/lib/format";
 import { track } from "@/lib/analytics";
 
@@ -159,7 +160,7 @@ export default function EventClient({ events, initialEventId }: Props) {
             görünür (display:none gizler). Geçişler anında. */}
         <div
           className={
-            "pb-12 pt-3 px-4 max-w-3xl mx-auto " +
+            "relative pb-12 pt-3 px-4 max-w-3xl mx-auto " +
             (mode === "afis" && hasPoster ? "" : "hidden")
           }
         >
@@ -176,6 +177,7 @@ export default function EventClient({ events, initialEventId }: Props) {
               }
             />
           )}
+          {mode === "afis" && hasPoster && <CampaignCountdownOverlay />}
         </div>
 
         <div
@@ -206,7 +208,7 @@ export default function EventClient({ events, initialEventId }: Props) {
 
         <div
           className={
-            "pb-12 pt-3 px-4 " +
+            "relative pb-12 pt-3 px-4 " +
             (mode === "liste" || (mode === "afis" && !hasPoster)
               ? ""
               : "hidden")
@@ -218,6 +220,9 @@ export default function EventClient({ events, initialEventId }: Props) {
               onProductClick={setActiveProduct}
               onGeoPermission={(_g, pos) => pos && setUserPos(pos)}
             />
+          )}
+          {(mode === "liste" || (mode === "afis" && !hasPoster)) && (
+            <CampaignCountdownOverlay />
           )}
         </div>
       </div>
