@@ -3,20 +3,7 @@
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import { WhatsAppIcon } from "./WhatsAppFollow";
-
-function nextSaturdayMidnight(now: Date): Date {
-  const target = new Date(now);
-  target.setHours(0, 0, 0, 0);
-  const day = target.getDay();
-  const daysUntil = (6 - day + 7) % 7 || 7;
-  target.setDate(target.getDate() + daysUntil);
-  return target;
-}
-
-function isCountdownDay(d: Date): boolean {
-  const day = d.getDay();
-  return day >= 1 && day <= 4;
-}
+import { isCountdownDay, nextSaturdayMidnight } from "@/lib/campaignSchedule";
 
 function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);

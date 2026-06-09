@@ -20,6 +20,7 @@ import { StoreModal } from "@/components/StoreModal";
 import { CampaignCountdownOverlay } from "@/components/CampaignCountdownOverlay";
 import { formatEventDate } from "@/lib/format";
 import { track } from "@/lib/analytics";
+import { isCountdownDay, upcomingWeekendLabel } from "@/lib/campaignSchedule";
 
 interface Props {
   events: HalkgunuEvent[];
@@ -50,10 +51,27 @@ export default function EventClient({ events, initialEventId }: Props) {
   });
   const [activeProduct, setActiveProduct] = useState<HalkgunuProductSummary | null>(null);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted((prev) => (prev[mode] ? prev : { ...prev, [mode]: true }));
   }, [mode]);
+
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Pazartesi-Perşembe arası en güncel etkinliğin başlığını otomatik olarak
+  // "yaklaşan Cumartesi-Pazar" formatında göster.
+  const displayedEvents = useMemo(() => {
+    if (!now || !isCountdownDay(now) || events.length === 0) return events;
+    const label = upcomingWeekendLabel(now);
+    return events.map((ev, i) =>
+      i === 0 ? { ...ev, event_name: label } : ev,
+    );
+  }, [events, now]);
 
   useEffect(() => {
     if (activeEventId !== initialEventId) {
@@ -106,8 +124,8 @@ export default function EventClient({ events, initialEventId }: Props) {
   }, [pages]);
 
   const activeEvent = useMemo(
-    () => events.find((e) => e.event_id === activeEventId) ?? null,
-    [events, activeEventId],
+    () => displayedEvents.find((e) => e.event_id === activeEventId) ?? null,
+    [displayedEvents, activeEventId],
   );
 
   return (
@@ -129,7 +147,7 @@ export default function EventClient({ events, initialEventId }: Props) {
 
       <div className="max-w-5xl mx-auto">
         <DateTabs
-          events={events}
+          events={displayedEvents}
           activeEventId={activeEventId}
           onSelectEvent={(id) => {
             track("event_change", { event_id: id });
