@@ -18,7 +18,6 @@ import { PosterView } from "@/components/PosterView";
 import { StoresView } from "@/components/StoresView";
 import { StoreModal } from "@/components/StoreModal";
 import { CampaignCountdownOverlay } from "@/components/CampaignCountdownOverlay";
-import { formatEventDate } from "@/lib/format";
 import { track } from "@/lib/analytics";
 import { isCountdownDay, upcomingWeekendLabel } from "@/lib/campaignSchedule";
 
@@ -168,9 +167,6 @@ export default function EventClient({ events, initialEventId }: Props) {
             <h1 className="font-display text-lg font-extrabold text-ink-900 leading-tight">
               {activeEvent.event_name}
             </h1>
-            <p className="text-xs text-ink-500 mt-0.5">
-              {formatEventDate(activeEvent.event_date)}
-            </p>
           </div>
         )}
 
