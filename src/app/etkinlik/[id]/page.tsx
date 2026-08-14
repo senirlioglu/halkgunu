@@ -10,6 +10,10 @@ import EventClient from "./EventClient";
 
 interface Params { params: { id: string }; }
 
+function safeDecodeId(raw: string): string {
+  try { return decodeURIComponent(raw); } catch { return raw; }
+}
+
 // ISR: yeni eklenen aktif event'lerin frontend'e yansıması için 60 sn'de bir
 // generateStaticParams + generateMetadata yeniden koşar.
 export const revalidate = 60;
@@ -27,13 +31,15 @@ export async function generateStaticParams() {
 // — Dinamik metadata (OG image + paylaşım)
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const events = await listActiveEvents().catch(() => []);
-  const ev = events.find(e => e.event_id === params.id);
+  const id = safeDecodeId(params.id);
+  const ev = events.find(e => e.event_id === id);
   if (!ev) return { title: "Halk Günü" };
 
   const title = `${ev.event_name} · ${formatEventDate(ev.event_date)} — Halk Günü`;
   const description = `Belirli mağazalarda ${formatEventDate(ev.event_date)} tarihinde geçerli indirimli ürünler.`;
-  const ogUrl = `/og/${params.id}`;
-  const canonical = `/etkinlik/${params.id}`;
+  const encoded = encodeURIComponent(id);
+  const ogUrl = `/og/${encoded}`;
+  const canonical = `/etkinlik/${encoded}`;
 
   return {
     title,
@@ -53,11 +59,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function EventPage({ params }: Params) {
   const events = await listActiveEvents().catch(() => []);
-  const ev = events.find(e => e.event_id === params.id);
+  const id = safeDecodeId(params.id);
+  const ev = events.find(e => e.event_id === id);
   if (!ev) notFound();
   return (
     <Suspense fallback={null}>
-      <EventClient events={events} initialEventId={params.id} />
+      <EventClient events={events} initialEventId={id} />
     </Suspense>
   );
 }
