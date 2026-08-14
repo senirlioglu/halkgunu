@@ -21,9 +21,14 @@ async function loadFont(weight: number): Promise<ArrayBuffer> {
   return await fetch(url).then(r => r.arrayBuffer());
 }
 
+function safeDecodeId(raw: string): string {
+  try { return decodeURIComponent(raw); } catch { return raw; }
+}
+
 export async function GET(_req: Request, { params }: Params) {
   const events = await listActiveEvents().catch(() => []);
-  const ev = events.find(e => e.event_id === params.id);
+  const id = safeDecodeId(params.id);
+  const ev = events.find(e => e.event_id === id);
 
   const eventName = ev?.event_name ?? "Halk Günü";
   const dateStr = ev ? formatEventDate(ev.event_date) : "";
