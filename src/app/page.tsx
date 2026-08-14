@@ -16,7 +16,7 @@ export default async function HomePage({ searchParams }: Props) {
   // Eski link uyumluluğu: /?event=xxx → /etkinlik/xxx
   if (searchParams.event) {
     const exists = events.some(e => e.event_id === searchParams.event);
-    if (exists) redirect(`/etkinlik/${searchParams.event}`);
+    if (exists) redirect(`/etkinlik/${encodeURIComponent(searchParams.event)}`);
   }
 
   if (events.length === 0) {
@@ -45,5 +45,5 @@ export default async function HomePage({ searchParams }: Props) {
   }
 
   // İlk aktif etkinliğe yönlendir
-  redirect(`/etkinlik/${events[0].event_id}`);
+  redirect(`/etkinlik/${encodeURIComponent(events[0].event_id)}`);
 }

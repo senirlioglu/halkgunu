@@ -74,7 +74,7 @@ export default function EventClient({ events, initialEventId }: Props) {
 
   useEffect(() => {
     if (activeEventId !== initialEventId) {
-      router.replace(`/etkinlik/${activeEventId}`, { scroll: false });
+      router.replace(`/etkinlik/${encodeURIComponent(activeEventId)}`, { scroll: false });
     }
   }, [activeEventId, initialEventId, router]);
 
